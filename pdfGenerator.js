@@ -80,7 +80,7 @@ class PDFGenerator {
     return result;
   }
 
-  async generatePDF(data) {
+  async generatePDF(data, url = "") {
     await this.ensureGeneratedDir();
 
     // Читаем шаблон
@@ -89,9 +89,28 @@ class PDFGenerator {
     // Подставляем данные
     const htmlContent = this.replaceTemplateVariables(template, data);
 
-    // Создаем уникальное имя файла
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const fileName = `kommercheskoe-predlozhenie-${timestamp}.pdf`;
+    // Создаем уникальное имя файла с ID из URL
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+    const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
+
+    // Извлекаем ID из URL
+    let idFromUrl = "";
+    if (url) {
+      const urlMatch = url.match(/\/(\d+)(?:\/|$)/);
+      if (urlMatch) {
+        idFromUrl = urlMatch[1];
+      }
+    }
+
+    const fileName = idFromUrl
+      ? `${year}_${month}_${day}_${hours}_${minutes}_${seconds}_${idFromUrl}.pdf`
+      : `${year}_${month}_${day}_${hours}_${minutes}_${seconds}.pdf`;
     const outputPath = path.join(this.generatedPath, fileName);
 
     // Проверяем существование изображений
@@ -175,7 +194,7 @@ class PDFGenerator {
       data.FREE_DESCRIPTION = freeDescription;
 
       // Генерируем PDF
-      const result = await this.generatePDF(data);
+      const result = await this.generatePDF(data, url);
 
       return result;
     } catch (error) {
