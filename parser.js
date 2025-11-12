@@ -115,7 +115,7 @@ class GoszakupkiParser {
             "#lotsList > tbody > tr.lot-row > td.lot-description",
           );
 
-          // Извлечение количества с парсингом
+          // Извлечение количества с парсингом для первого лота
           let lotCount = "";
           const lotCountElement = document.querySelector(
             "#lotsList > tbody > tr.lot-row > td.lot-count-price",
@@ -124,6 +124,33 @@ class GoszakupkiParser {
             const countText = lotCountElement.textContent.trim();
             const countMatch = countText.match(/^(\d+)\s+/);
             lotCount = countMatch ? `${countMatch[1]} ед.` : countText;
+          }
+
+          // Проверяем наличие второго лота
+          const lotNumElements = document.querySelectorAll("th.lot-num");
+          const hasSecondLot =
+            lotNumElements.length >= 2 &&
+            Array.from(lotNumElements).some(
+              (el) => el.textContent.trim() === "2",
+            );
+
+          let lotDescription2 = "";
+          let lotCount2 = "";
+
+          if (hasSecondLot) {
+            // Извлекаем данные для второго лота
+            lotDescription2 = safeExtract(
+              "#lotsList > tbody > tr:nth-of-type(3) > td.lot-description",
+            );
+
+            const lotCountElement2 = document.querySelector(
+              "#lotsList > tbody > tr:nth-of-type(3) > td.lot-count-price",
+            );
+            if (lotCountElement2) {
+              const countText2 = lotCountElement2.textContent.trim();
+              const countMatch2 = countText2.match(/^(\d+)/);
+              lotCount2 = countMatch2 ? `${countMatch2[1]} ед.` : countText2;
+            }
           }
 
           return {
@@ -135,6 +162,9 @@ class GoszakupkiParser {
             END_DATE: endDate,
             LOT_DESCRIPTION: lotDescription,
             LOT_COUNT: lotCount,
+            LOT_DESCRIPTION_2: lotDescription2,
+            LOT_COUNT_2: lotCount2,
+            HAS_SECOND_LOT: hasSecondLot,
           };
         } else if (isMarketingPage) {
           console.log("Использую селекторы для страницы /marketing");
@@ -163,7 +193,7 @@ class GoszakupkiParser {
             "#lotsList > tbody > tr.lot-row > td.lot-description",
           );
 
-          // Извлечение количества с парсингом
+          // Извлечение количества с парсингом для первого лота
           let lotCount = "";
           const lotCountElement = document.querySelector(
             "#lotsList > tbody > tr.lot-row > td.lot-count-price",
@@ -172,6 +202,33 @@ class GoszakupkiParser {
             const countText = lotCountElement.textContent.trim();
             const countMatch = countText.match(/^(\d+)\s+/);
             lotCount = countMatch ? `${countMatch[1]} ед.` : countText;
+          }
+
+          // Проверяем наличие второго лота
+          const lotNumElements = document.querySelectorAll("th.lot-num");
+          const hasSecondLot =
+            lotNumElements.length >= 2 &&
+            Array.from(lotNumElements).some(
+              (el) => el.textContent.trim() === "2",
+            );
+
+          let lotDescription2 = "";
+          let lotCount2 = "";
+
+          if (hasSecondLot) {
+            // Извлекаем данные для второго лота
+            lotDescription2 = safeExtract(
+              "#lotsList > tbody > tr:nth-of-type(3) > td.lot-description",
+            );
+
+            const lotCountElement2 = document.querySelector(
+              "#lotsList > tbody > tr:nth-of-type(3) > td.lot-count-price",
+            );
+            if (lotCountElement2) {
+              const countText2 = lotCountElement2.textContent.trim();
+              const countMatch2 = countText2.match(/^(\d+)/);
+              lotCount2 = countMatch2 ? `${countMatch2[1]} ед.` : countText2;
+            }
           }
 
           return {
@@ -183,6 +240,9 @@ class GoszakupkiParser {
             END_DATE: endDate,
             LOT_DESCRIPTION: lotDescription,
             LOT_COUNT: lotCount,
+            LOT_DESCRIPTION_2: lotDescription2,
+            LOT_COUNT_2: lotCount2,
+            HAS_SECOND_LOT: hasSecondLot,
           };
         } else {
           console.log("Ищу данные используя универсальные методы");
@@ -312,6 +372,31 @@ class GoszakupkiParser {
             lotCount = countMatch ? `${countMatch[1]} ед.` : countText;
           }
 
+          // Проверяем наличие второго лота
+          const secondLotNumElement = document.querySelector("th.lot-num");
+          const hasSecondLot =
+            secondLotNumElement &&
+            secondLotNumElement.textContent.trim() === "2";
+
+          let lotDescription2 = "";
+          let lotCount2 = "";
+
+          if (hasSecondLot) {
+            // Извлекаем данные для второго лота
+            lotDescription2 = safeExtract(
+              "#lotsList > tbody > tr:nth-of-type(3) > td.lot-description",
+            );
+
+            const lotCountElement2 = document.querySelector(
+              "#lotsList > tbody > tr:nth-of-type(3) > td.lot-count-price",
+            );
+            if (lotCountElement2) {
+              const countText2 = lotCountElement2.textContent.trim();
+              const countMatch2 = countText2.match(/^(\d+)/);
+              lotCount2 = countMatch2 ? `${countMatch2[1]} ед.` : countText2;
+            }
+          }
+
           return {
             COMPANY_NAME: companyName,
             UNP: unp,
@@ -321,6 +406,9 @@ class GoszakupkiParser {
             END_DATE: endDate,
             LOT_DESCRIPTION: lotDescription,
             LOT_COUNT: lotCount,
+            LOT_DESCRIPTION_2: lotDescription2,
+            LOT_COUNT_2: lotCount2,
+            HAS_SECOND_LOT: hasSecondLot,
           };
         }
       });

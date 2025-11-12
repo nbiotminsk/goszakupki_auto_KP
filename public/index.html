@@ -235,21 +235,116 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="unitPrice">Цена за единицу (BYN)</label>
-                        <input
-                            type="number"
-                            id="unitPrice"
-                            name="unitPrice"
-                            placeholder="250.00"
-                            step="0.01"
-                            min="0"
-                            required
-                        />
-                        <div class="help-text">
-                            Укажите цену за единицу товара/услуги в белорусских
-                            рублях.<br />
-                            Общая сумма будет рассчитана автоматически (цена ×
-                            количество).
+                        <label
+                            >Выберите лоты для включения в предложение:</label
+                        >
+                        <div style="margin-bottom: 15px">
+                            <div
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    margin-bottom: 8px;
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    id="lot1Only"
+                                    name="lotSelection"
+                                    value="lot1"
+                                    checked
+                                    style="width: auto; margin-right: 10px"
+                                />
+                                <label
+                                    for="lot1Only"
+                                    style="
+                                        margin-bottom: 0;
+                                        font-weight: normal;
+                                    "
+                                    >Только первый лот</label
+                                >
+                            </div>
+                            <div
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    margin-bottom: 8px;
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    id="lot2Only"
+                                    name="lotSelection"
+                                    value="lot2"
+                                    style="width: auto; margin-right: 10px"
+                                />
+                                <label
+                                    for="lot2Only"
+                                    style="
+                                        margin-bottom: 0;
+                                        font-weight: normal;
+                                    "
+                                    >Только второй лот</label
+                                >
+                            </div>
+                            <div
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    margin-bottom: 8px;
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    id="bothLots"
+                                    name="lotSelection"
+                                    value="both"
+                                    style="width: auto; margin-right: 10px"
+                                />
+                                <label
+                                    for="bothLots"
+                                    style="
+                                        margin-bottom: 0;
+                                        font-weight: normal;
+                                    "
+                                    >Оба лота</label
+                                >
+                            </div>
+                        </div>
+
+                        <div id="lot1PriceGroup" style="display: block">
+                            <label for="unitPrice"
+                                >Цена за единицу первого лота (BYN)</label
+                            >
+                            <input
+                                type="number"
+                                id="unitPrice"
+                                name="unitPrice"
+                                placeholder="250.00"
+                                step="0.01"
+                                min="0"
+                                required
+                            />
+                            <div class="help-text">
+                                Укажите цену за единицу для первого лота
+                            </div>
+                        </div>
+
+                        <div id="lot2PriceGroup" style="display: none">
+                            <label for="unitPrice2"
+                                >Цена за единицу второго лота (BYN)</label
+                            >
+                            <input
+                                type="number"
+                                id="unitPrice2"
+                                name="unitPrice2"
+                                placeholder="300.00"
+                                step="0.01"
+                                min="0"
+                            />
+                            <div class="help-text">
+                                Укажите цену за единицу для второго лота (если
+                                он есть в закупке)
+                            </div>
                         </div>
                     </div>
 
@@ -287,17 +382,76 @@
         </div>
 
         <script>
+            // Обработчик радио-кнопок выбора лотов
+            function updateLotSelection() {
+                const lotSelection = document.querySelector(
+                    'input[name="lotSelection"]:checked',
+                ).value;
+                const lot1PriceGroup =
+                    document.getElementById("lot1PriceGroup");
+                const lot2PriceGroup =
+                    document.getElementById("lot2PriceGroup");
+                const unitPrice1 = document.getElementById("unitPrice");
+                const unitPrice2 = document.getElementById("unitPrice2");
+
+                // Сбрасываем required атрибуты
+                unitPrice1.required = false;
+                unitPrice2.required = false;
+
+                switch (lotSelection) {
+                    case "lot1":
+                        lot1PriceGroup.style.display = "block";
+                        lot2PriceGroup.style.display = "none";
+                        unitPrice1.required = true;
+                        unitPrice2.value = "";
+                        break;
+                    case "lot2":
+                        lot1PriceGroup.style.display = "none";
+                        lot2PriceGroup.style.display = "block";
+                        unitPrice2.required = true;
+                        unitPrice1.value = "";
+                        break;
+                    case "both":
+                        lot1PriceGroup.style.display = "block";
+                        lot2PriceGroup.style.display = "block";
+                        unitPrice1.required = true;
+                        unitPrice2.required = true;
+                        break;
+                }
+            }
+
+            // Добавляем обработчики на все радио-кнопки
+            document
+                .querySelectorAll('input[name="lotSelection"]')
+                .forEach((radio) => {
+                    radio.addEventListener("change", updateLotSelection);
+                });
+
+            // Инициализация при загрузке страницы
+            updateLotSelection();
+
             document
                 .getElementById("generatorForm")
                 .addEventListener("submit", async (e) => {
                     e.preventDefault();
 
                     const url = document.getElementById("url").value.trim();
+                    const lotSelection = document.querySelector(
+                        'input[name="lotSelection"]:checked',
+                    ).value;
                     const unitPrice =
                         document.getElementById("unitPrice").value;
+                    const unitPrice2 =
+                        document.getElementById("unitPrice2").value;
                     const freeDescription = document
                         .getElementById("freeDescription")
                         .value.trim();
+
+                    // Определяем какие лоты включены
+                    let includeLot1 =
+                        lotSelection === "lot1" || lotSelection === "both";
+                    let includeLot2 =
+                        lotSelection === "lot2" || lotSelection === "both";
                     const generateBtn = document.getElementById("generateBtn");
                     const loading = document.getElementById("loading");
                     const result = document.getElementById("result");
@@ -312,10 +466,24 @@
                         return;
                     }
 
-                    // Проверка цены за единицу
-                    if (!unitPrice || parseFloat(unitPrice) <= 0) {
+                    // Проверка цены за единицу первого лота (если включен)
+                    if (
+                        includeLot1 &&
+                        (!unitPrice || parseFloat(unitPrice) <= 0)
+                    ) {
                         showError(
-                            "Пожалуйста, введите корректную цену за единицу",
+                            "Пожалуйста, введите корректную цену за единицу первого лота",
+                        );
+                        return;
+                    }
+
+                    // Проверка цены за единицу второго лота (если включен)
+                    if (
+                        includeLot2 &&
+                        (!unitPrice2 || parseFloat(unitPrice2) <= 0)
+                    ) {
+                        showError(
+                            "Пожалуйста, введите корректную цену за единицу второго лота",
                         );
                         return;
                     }
@@ -334,7 +502,10 @@
                             },
                             body: JSON.stringify({
                                 url,
-                                unitPrice,
+                                unitPrice: includeLot1 ? unitPrice : "0",
+                                unitPrice2: includeLot2 ? unitPrice2 : "0",
+                                includeLot1,
+                                includeLot2,
                                 freeDescription,
                             }),
                         });

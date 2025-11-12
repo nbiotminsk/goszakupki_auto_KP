@@ -44,10 +44,42 @@ class PDFGenerator {
   replaceTemplateVariables(template, data) {
     let result = template;
 
-    // Расчет значений
-    const unitPrice = parseFloat(data.UNIT_PRICE || 0);
-    const quantity = this.extractQuantity(data.LOT_COUNT || "0");
-    const totalAmount = unitPrice * quantity;
+    // Расчет значений для первого лота
+    const includeLot1 = data.INCLUDE_LOT_1 !== false; // По умолчанию включен
+    let unitPrice = 0;
+    let totalAmount = 0;
+
+    if (includeLot1) {
+      unitPrice = parseFloat(data.UNIT_PRICE || 0);
+      const quantity = this.extractQuantity(data.LOT_COUNT || "0");
+      totalAmount = unitPrice * quantity;
+    }
+
+    // Расчет значений для второго лота (если есть и включен)
+    let includeLot2 = data.INCLUDE_LOT_2 === true;
+    let unitPrice2 = 0;
+    let totalAmount2 = 0;
+
+    if (includeLot2 && data.HAS_SECOND_LOT) {
+      unitPrice2 = parseFloat(data.UNIT_PRICE_2 || data.UNIT_PRICE || 0);
+      const quantity2 = this.extractQuantity(data.LOT_COUNT_2 || "0");
+      totalAmount2 = unitPrice2 * quantity2;
+    } else {
+      includeLot2 = false; // Если второго лота нет в данных, выключаем его
+    }
+
+    // Формируем текст для итоговой суммы
+    let totalSummaryText = "";
+    if (includeLot1 && includeLot2) {
+      // Если есть два лота
+      totalSummaryText = `Лот 1: ${this.formatNumber(totalAmount)}, Лот 2: ${this.formatNumber(totalAmount2)}`;
+    } else if (includeLot1) {
+      // Если только первый лот
+      totalSummaryText = this.formatNumber(totalAmount);
+    } else if (includeLot2) {
+      // Если только второй лот
+      totalSummaryText = this.formatNumber(totalAmount2);
+    }
 
     // Заменяем все плейсхолдеры на реальные данные
     result = result.replace(/{{COMPANY_NAME}}/g, data.COMPANY_NAME || "");
@@ -69,6 +101,45 @@ class PDFGenerator {
       this.formatNumber(totalAmount),
     );
     result = result.replace(/{{Price}}/g, this.formatNumber(totalAmount)); // Для совместимости
+    result = result.replace(/{{total_summary}}/g, totalSummaryText); // Итоговая сумма с учетом лотов
+
+    // Обработка второго лота
+    result = result.replace(
+      /{{lot_description_2}}/g,
+      data.LOT_DESCRIPTION_2 || "",
+    );
+    result = result.replace(/{{lot_count_2}}/g, data.LOT_COUNT_2 || "");
+    result = result.replace(/{{unit_price_2}}/g, this.formatNumber(unitPrice2));
+    result = result.replace(
+      /{{total_amount_2}}/g,
+      this.formatNumber(totalAmount2),
+    );
+
+    // Обработка условных блоков для первого лота
+    if (includeLot1) {
+      // Удаляем теги условного отображения
+      result = result.replace(/{{#has_first_lot}}/g, "");
+      result = result.replace(/{{\/has_first_lot}}/g, "");
+    } else {
+      // Полностью удаляем блок первого лота
+      const firstLotRegex = /{{#has_first_lot}}[\s\S]*?{{\/has_first_lot}}/g;
+      result = result.replace(firstLotRegex, "");
+    }
+
+    // Добавляем номер для второго лота
+    let lotNumber2 = includeLot1 ? "2" : "1";
+    result = result.replace(/{{lot_number_2}}/g, lotNumber2);
+
+    // Обработка условных блоков для второго лота
+    if (includeLot2) {
+      // Удаляем теги условного отображения
+      result = result.replace(/{{#has_second_lot}}/g, "");
+      result = result.replace(/{{\/has_second_lot}}/g, "");
+    } else {
+      // Полностью удаляем блок второго лота
+      const secondLotRegex = /{{#has_second_lot}}[\s\S]*?{{\/has_second_lot}}/g;
+      result = result.replace(secondLotRegex, "");
+    }
 
     // Преобразуем изображения в base64 для встраивания в HTML
     const logoBase64 = this.imageToBase64("logo.png");
@@ -181,7 +252,14 @@ class PDFGenerator {
     }
   }
 
-  async generatePDFFromURL(url, unitPrice, freeDescription = "") {
+  async generatePDFFromURL(
+    url,
+    unitPrice,
+    unitPrice2 = 0,
+    includeLot1 = true,
+    includeLot2 = false,
+    freeDescription = "",
+  ) {
     const parser = require("./parser");
     const goszakupkiParser = new parser();
 
@@ -189,9 +267,17 @@ class PDFGenerator {
       // Парсим данные с сайта
       const data = await goszakupkiParser.parsePage(url);
 
-      // Добавляем цену за единицу и свободное описание
+      // Добавляем цены за единицу и свободное описание
       data.UNIT_PRICE = unitPrice;
+      data.UNIT_PRICE_2 = unitPrice2;
+      data.INCLUDE_LOT_1 = includeLot1;
+      data.INCLUDE_LOT_2 = includeLot2;
       data.FREE_DESCRIPTION = freeDescription;
+
+      // Если второй лот включен, но не найден в данных, добавляем флаг
+      if (includeLot2 && !data.HAS_SECOND_LOT) {
+        console.warn("Второй лот включен, но не найден на странице закупки");
+      }
 
       // Генерируем PDF
       const result = await this.generatePDF(data, url);

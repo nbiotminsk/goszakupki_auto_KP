@@ -27,13 +27,45 @@ app.get("/", (req, res) => {
 // API для генерации PDF
 app.post("/generate", async (req, res) => {
   try {
-    const { url, unitPrice, freeDescription } = req.body;
+    const {
+      url,
+      unitPrice,
+      unitPrice2,
+      includeLot1,
+      includeLot2,
+      freeDescription,
+    } = req.body;
 
     // Валидация входных данных
-    if (!url || !unitPrice) {
+    if (!url) {
       return res.status(400).json({
         success: false,
-        message: "Необходимо указать URL и цену за единицу",
+        message: "Необходимо указать URL",
+      });
+    }
+
+    // Проверяем, что хотя бы один лот включен
+    if (!includeLot1 && !includeLot2) {
+      return res.status(400).json({
+        success: false,
+        message: "Необходимо выбрать хотя бы один лот",
+      });
+    }
+
+    // Проверяем цены для включенных лотов
+    if (includeLot1 && (!unitPrice || parseFloat(unitPrice) <= 0)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Цена за единицу первого лота должна быть положительным числом",
+      });
+    }
+
+    if (includeLot2 && (!unitPrice2 || parseFloat(unitPrice2) <= 0)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Цена за единицу второго лота должна быть положительным числом",
       });
     }
 
@@ -45,23 +77,21 @@ app.post("/generate", async (req, res) => {
       });
     }
 
-    // Проверка формата цены за единицу
-    const unitPriceNum = parseFloat(unitPrice);
-    if (isNaN(unitPriceNum) || unitPriceNum <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Цена за единицу должна быть положительным числом",
-      });
-    }
+    // Преобразуем цены в числа
+    const unitPriceNum = includeLot1 ? parseFloat(unitPrice) : 0;
+    const unitPrice2Num = includeLot2 ? parseFloat(unitPrice2) : 0;
 
     console.log(
-      `Начало генерации PDF для URL: ${url}, цена за единицу: ${unitPrice}`,
+      `Начало генерации PDF для URL: ${url}, лот 1: ${includeLot1 ? "включен, цена: " + unitPriceNum : "выключен"}, лот 2: ${includeLot2 ? "включен, цена: " + unitPrice2Num : "выключен"}`,
     );
 
     // Генерация PDF
     const result = await pdfGenerator.generatePDFFromURL(
       url,
-      unitPrice,
+      unitPriceNum,
+      unitPrice2Num,
+      includeLot1,
+      includeLot2,
       freeDescription,
     );
 
