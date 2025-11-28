@@ -1,25 +1,30 @@
 const puppeteer = require("puppeteer");
 
 class GoszakupkiParser {
-  constructor() {
-    this.browser = null;
+  constructor(browserInstance = null) {
+    this.browser = browserInstance;
     this.page = null;
+    this.shouldCloseBrowser = !browserInstance; // Закрывать браузер только если мы его создали
   }
 
   async initialize() {
-    this.browser = await puppeteer.launch({
-      headless: "new",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
-        "--single-process",
-        "--disable-gpu",
-      ],
-    });
+    // Создаем новый браузер только если его нет
+    if (!this.browser) {
+      this.browser = await puppeteer.launch({
+        headless: "new",
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--single-process",
+          "--disable-gpu",
+        ],
+      });
+    }
+
     this.page = await this.browser.newPage();
 
     // Устанавливаем user-agent
@@ -440,10 +445,16 @@ class GoszakupkiParser {
   }
 
   async close() {
-    if (this.browser) {
+    // Закрываем страницу всегда
+    if (this.page) {
+      await this.page.close();
+      this.page = null;
+    }
+
+    // Закрываем браузер только если мы его создали
+    if (this.shouldCloseBrowser && this.browser) {
       await this.browser.close();
       this.browser = null;
-      this.page = null;
     }
   }
 }

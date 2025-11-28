@@ -210,23 +210,23 @@
                 </tr>
             </thead>
             <tbody>
-                {{#has_first_lot}}
+                {{#if has_first_lot}}
                 <tr>
                     <td align="center">1</td>
                     <td>{{lot_description}}</td>
                     <td align="center">{{lot_count}}</td>
-                    <td align="right">{{unit_price}}</td>
-                    <td align="right">{{total_amount}}</td>
+                    <td align="right">{{formatNumber unit_price}}</td>
+                    <td align="right">{{formatNumber total_amount}}</td>
                 </tr>
-                {{/has_first_lot}} {{#has_second_lot}}
+                {{/if}} {{#if has_second_lot}}
                 <tr>
                     <td align="center">{{lot_number_2}}</td>
                     <td>{{lot_description_2}}</td>
                     <td align="center">{{lot_count_2}}</td>
-                    <td align="right">{{unit_price_2}}</td>
-                    <td align="right">{{total_amount_2}}</td>
+                    <td align="right">{{formatNumber unit_price_2}}</td>
+                    <td align="right">{{formatNumber total_amount_2}}</td>
                 </tr>
-                {{/has_second_lot}}
+                {{/if}}
             </tbody>
         </table>
         <div style="margin: 0px 0; font-size: 10pt; white-space: pre-wrap">
@@ -237,9 +237,9 @@
             <p>
                 <strong>Итого:</strong>
                 <span style="font-weight: normal"
-                    >{{total_summary}} бел.руб. без НДС согласно Главы 32
-                    раздела 7 особенной части налогового кодекса Республики
-                    Беларусь.</span
+                    >{{formatNumber total_summary}} бел.руб. без НДС согласно
+                    Главы 32 раздела 7 особенной части налогового кодекса
+                    Республики Беларусь.</span
                 >
             </p>
             <hr />

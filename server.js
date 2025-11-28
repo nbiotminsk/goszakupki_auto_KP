@@ -1,12 +1,53 @@
 const express = require("express");
 const path = require("path");
+const puppeteer = require("puppeteer");
 const PDFGenerator = require("./pdfGenerator");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Инициализация генератора PDF
-const pdfGenerator = new PDFGenerator();
+// Глобальный экземпляр браузера
+let browserInstance = null;
+
+// Инициализация браузера при запуске сервера
+async function initializeBrowser() {
+  try {
+    browserInstance = await puppeteer.launch({
+      headless: "new",
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process",
+        "--disable-gpu",
+        "--allow-file-access-from-files",
+        "--disable-web-security",
+      ],
+    });
+    console.log("🌐 Браузер Puppeteer успешно запущен");
+  } catch (error) {
+    console.error("❌ Ошибка при запуске браузера:", error);
+    process.exit(1);
+  }
+}
+
+// Закрытие браузера при остановке сервера
+async function closeBrowser() {
+  if (browserInstance) {
+    try {
+      await browserInstance.close();
+      console.log("🌐 Браузер Puppeteer закрыт");
+    } catch (error) {
+      console.error("❌ Ошибка при закрытии браузера:", error);
+    }
+  }
+}
+
+// Инициализация генератора PDF с передачей экземпляра браузера
+let pdfGenerator = null;
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
@@ -137,23 +178,44 @@ app.use((req, res) => {
 });
 
 // Запуск сервера
-app.listen(PORT, () => {
-  console.log(`🚀 Сервер запущен на порту ${PORT}`);
-  console.log(
-    `📄 Генератор коммерческих предложений доступен по адресу: http://localhost:${PORT}`,
-  );
-  console.log(
-    `📁 Сгенерированные файлы сохраняются в: ${path.join(__dirname, "generated")}`,
-  );
-});
+async function startServer() {
+  try {
+    // Сначала инициализируем браузер
+    await initializeBrowser();
+
+    // Затем инициализируем генератор PDF с браузером
+    pdfGenerator = new PDFGenerator(browserInstance);
+
+    // Запускаем сервер
+    app.listen(PORT, () => {
+      console.log(`🚀 Сервер запущен на порту ${PORT}`);
+      console.log(
+        `📄 Генератор коммерческих предложений доступен по адресу: http://localhost:${PORT}`,
+      );
+      console.log(
+        `📁 Сгенерированные файлы сохраняются в: ${path.join(__dirname, "generated")}`,
+      );
+    });
+  } catch (error) {
+    console.error("❌ Ошибка при запуске сервера:", error);
+    process.exit(1);
+  }
+}
 
 // Graceful shutdown
-process.on("SIGINT", async () => {
+async function gracefulShutdown() {
   console.log("\n🔄 Завершение работы сервера...");
-  process.exit(0);
-});
+  try {
+    await closeBrowser();
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Ошибка при завершении работы:", error);
+    process.exit(1);
+  }
+}
 
-process.on("SIGTERM", async () => {
-  console.log("\n🔄 Завершение работы сервера...");
-  process.exit(0);
-});
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);
+
+// Запускаем сервер
+startServer();

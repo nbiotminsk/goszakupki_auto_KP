@@ -1,12 +1,39 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
+const Handlebars = require("handlebars");
+
+// Регистрируем helper для форматирования чисел
+Handlebars.registerHelper("formatNumber", function (number) {
+  if (typeof number !== "number") {
+    number = parseFloat(number) || 0;
+  }
+  return new Intl.NumberFormat("ru-BY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(number);
+});
 
 class PDFGenerator {
-  constructor() {
+  constructor(browserInstance = null) {
+    this.browser = browserInstance;
     this.templatePath = path.join(__dirname, "calculator-template.html");
     this.generatedPath = path.join(__dirname, "generated");
     this.imagesPath = path.join(__dirname, "images");
+
+    // Компилируем шаблон Handlebars при инициализации
+    this.compileTemplate();
+  }
+
+  compileTemplate() {
+    try {
+      const templateSource = fs.readFileSync(this.templatePath, "utf8");
+      this.template = Handlebars.compile(templateSource);
+      console.log("✅ Шаблон Handlebars успешно скомпилирован");
+    } catch (error) {
+      console.error("❌ Ошибка при компиляции шаблона:", error);
+      throw new Error(`Не удалось скомпилировать шаблон: ${error.message}`);
+    }
   }
 
   async ensureGeneratedDir() {
@@ -33,17 +60,7 @@ class PDFGenerator {
     return match ? parseInt(match[1]) : 0;
   }
 
-  formatNumber(number) {
-    // Форматируем число с двумя знаками после запятой
-    return new Intl.NumberFormat("ru-BY", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(number);
-  }
-
-  replaceTemplateVariables(template, data) {
-    let result = template;
-
+  prepareTemplateData(data) {
     // Расчет значений для первого лота
     const includeLot1 = data.INCLUDE_LOT_1 !== false; // По умолчанию включен
     let unitPrice = 0;
@@ -68,97 +85,65 @@ class PDFGenerator {
       includeLot2 = false; // Если второго лота нет в данных, выключаем его
     }
 
-    // Формируем текст для итоговой суммы
+    // Формируем текст для итоговой суммы (без форматирования, Handlebars сделает это)
     let totalSummaryText = "";
     if (includeLot1 && includeLot2) {
       // Если есть два лота
-      totalSummaryText = `Лот 1: ${this.formatNumber(totalAmount)}, Лот 2: ${this.formatNumber(totalAmount2)}`;
+      totalSummaryText = `Лот 1: ${totalAmount}, Лот 2: ${totalAmount2}`;
     } else if (includeLot1) {
       // Если только первый лот
-      totalSummaryText = this.formatNumber(totalAmount);
+      totalSummaryText = `${totalAmount}`;
     } else if (includeLot2) {
       // Если только второй лот
-      totalSummaryText = this.formatNumber(totalAmount2);
-    }
-
-    // Заменяем все плейсхолдеры на реальные данные
-    result = result.replace(/{{COMPANY_NAME}}/g, data.COMPANY_NAME || "");
-    result = result.replace(/{{UNP}}/g, data.UNP || "");
-    result = result.replace(/{{DATE}}/g, data.DATE || "");
-    result = result.replace(/{{ADDRESS}}/g, data.ADDRESS || "");
-    result = result.replace(/{{PLACE}}/g, data.PLACE || "");
-    result = result.replace(/{{payment}}/g, data.PAYMENT || "");
-    result = result.replace(/{{END_DATE}}/g, data.END_DATE || "");
-    result = result.replace(/{{lot_description}}/g, data.LOT_DESCRIPTION || "");
-    result = result.replace(/{{lot_count}}/g, data.LOT_COUNT || "");
-    result = result.replace(
-      /{{FREE_DESCRIPTION}}/g,
-      data.FREE_DESCRIPTION || "",
-    );
-    result = result.replace(/{{unit_price}}/g, this.formatNumber(unitPrice));
-    result = result.replace(
-      /{{total_amount}}/g,
-      this.formatNumber(totalAmount),
-    );
-    result = result.replace(/{{Price}}/g, this.formatNumber(totalAmount)); // Для совместимости
-    result = result.replace(/{{total_summary}}/g, totalSummaryText); // Итоговая сумма с учетом лотов
-
-    // Обработка второго лота
-    result = result.replace(
-      /{{lot_description_2}}/g,
-      data.LOT_DESCRIPTION_2 || "",
-    );
-    result = result.replace(/{{lot_count_2}}/g, data.LOT_COUNT_2 || "");
-    result = result.replace(/{{unit_price_2}}/g, this.formatNumber(unitPrice2));
-    result = result.replace(
-      /{{total_amount_2}}/g,
-      this.formatNumber(totalAmount2),
-    );
-
-    // Обработка условных блоков для первого лота
-    if (includeLot1) {
-      // Удаляем теги условного отображения
-      result = result.replace(/{{#has_first_lot}}/g, "");
-      result = result.replace(/{{\/has_first_lot}}/g, "");
-    } else {
-      // Полностью удаляем блок первого лота
-      const firstLotRegex = /{{#has_first_lot}}[\s\S]*?{{\/has_first_lot}}/g;
-      result = result.replace(firstLotRegex, "");
+      totalSummaryText = `${totalAmount2}`;
     }
 
     // Добавляем номер для второго лота
     let lotNumber2 = includeLot1 ? "2" : "1";
-    result = result.replace(/{{lot_number_2}}/g, lotNumber2);
-
-    // Обработка условных блоков для второго лота
-    if (includeLot2) {
-      // Удаляем теги условного отображения
-      result = result.replace(/{{#has_second_lot}}/g, "");
-      result = result.replace(/{{\/has_second_lot}}/g, "");
-    } else {
-      // Полностью удаляем блок второго лота
-      const secondLotRegex = /{{#has_second_lot}}[\s\S]*?{{\/has_second_lot}}/g;
-      result = result.replace(secondLotRegex, "");
-    }
 
     // Преобразуем изображения в base64 для встраивания в HTML
     const logoBase64 = this.imageToBase64("logo.png");
     const pechatBase64 = this.imageToBase64("pechat.jpg");
 
-    result = result.replace(/{{LOGO_PATH}}/g, logoBase64);
-    result = result.replace(/{{PECHAT_PATH}}/g, pechatBase64);
+    // Подготавливаем данные для шаблона Handlebars
+    return {
+      COMPANY_NAME: data.COMPANY_NAME || "",
+      UNP: data.UNP || "",
+      DATE: data.DATE || "",
+      ADDRESS: data.ADDRESS || "",
+      PLACE: data.PLACE || "",
+      payment: data.PAYMENT || "",
+      END_DATE: data.END_DATE || "",
+      lot_description: data.LOT_DESCRIPTION || "",
+      lot_count: data.LOT_COUNT || "",
+      FREE_DESCRIPTION: data.FREE_DESCRIPTION || "",
+      unit_price: unitPrice,
+      total_amount: totalAmount,
+      total_summary: totalSummaryText,
 
-    return result;
+      // Второй лот
+      lot_description_2: data.LOT_DESCRIPTION_2 || "",
+      lot_count_2: data.LOT_COUNT_2 || "",
+      unit_price_2: unitPrice2,
+      total_amount_2: totalAmount2,
+      lot_number_2: lotNumber2,
+
+      // Флаги для условных блоков
+      has_first_lot: includeLot1,
+      has_second_lot: includeLot2,
+
+      // Изображения
+      LOGO_PATH: logoBase64,
+      PECHAT_PATH: pechatBase64,
+    };
   }
 
   async generatePDF(data, url = "") {
     await this.ensureGeneratedDir();
 
-    // Читаем шаблон
-    const template = fs.readFileSync(this.templatePath, "utf8");
-
-    // Подставляем данные
-    const htmlContent = this.replaceTemplateVariables(template, data);
+    // Подготавливаем данные для шаблона и используем Handlebars
+    const templateData = this.prepareTemplateData(data);
+    const htmlContent = this.template(templateData);
 
     // Создаем уникальное имя файла с ID из URL
     const now = new Date();
@@ -195,33 +180,38 @@ class PDFGenerator {
       console.warn("Предупреждение: Файл печати не найден:", pechatPath);
     }
 
-    // Запускаем браузер для генерации PDF
-    const browser = await puppeteer.launch({
-      headless: "new",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
-        "--single-process",
-        "--disable-gpu",
-        "--allow-file-access-from-files",
-        "--disable-web-security",
-      ],
-    });
+    // Используем существующий браузер или создаем новый для обратной совместимости
+    let browser = this.browser;
+    let shouldCloseBrowser = false;
 
+    if (!browser) {
+      browser = await puppeteer.launch({
+        headless: "new",
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--single-process",
+          "--disable-gpu",
+          "--allow-file-access-from-files",
+          "--disable-web-security",
+        ],
+      });
+      shouldCloseBrowser = true;
+    }
+
+    let page = null;
     try {
-      const page = await browser.newPage();
+      // Создаем новую страницу для генерации PDF
+      page = await browser.newPage();
 
       // Устанавливаем контент HTML
       await page.setContent(htmlContent, {
         waitUntil: "networkidle0",
       });
-
-      // Ждем загрузки изображений
-      await page.waitForTimeout(3000);
 
       // Генерируем PDF
       await page.pdf({
@@ -248,7 +238,14 @@ class PDFGenerator {
       console.error("Ошибка при генерации PDF:", error);
       throw new Error(`Не удалось сгенерировать PDF: ${error.message}`);
     } finally {
-      await browser.close();
+      // Закрываем страницу, но не браузер
+      if (page) {
+        await page.close();
+      }
+      // Закрываем браузер только если мы его создали
+      if (shouldCloseBrowser && browser) {
+        await browser.close();
+      }
     }
   }
 
@@ -261,7 +258,7 @@ class PDFGenerator {
     freeDescription = "",
   ) {
     const parser = require("./parser");
-    const goszakupkiParser = new parser();
+    const goszakupkiParser = new parser(this.browser);
 
     try {
       // Парсим данные с сайта
