@@ -4,7 +4,7 @@ const puppeteer = require("puppeteer");
 const PDFGenerator = require("./pdfGenerator");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Глобальный экземпляр браузера
 let browserInstance = null;
@@ -16,15 +16,9 @@ async function initializeBrowser() {
       headless: "new",
       args: [
         "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
-        "--single-process",
         "--disable-gpu",
-        "--allow-file-access-from-files",
         "--disable-web-security",
+        "--allow-file-access-from-files",
       ],
     });
     console.log("🌐 Браузер Puppeteer успешно запущен");
@@ -206,7 +200,14 @@ async function startServer() {
 async function gracefulShutdown() {
   console.log("\n🔄 Завершение работы сервера...");
   try {
+    // Закрываем генератор PDF если он был создан
+    if (pdfGenerator && pdfGenerator.browser) {
+      console.log("📄 Закрытие браузера генератора PDF...");
+      // Не закрываем браузер здесь, так как он управляется на уровне сервера
+    }
+
     await closeBrowser();
+    console.log("✅ Сервер успешно завершил работу");
     process.exit(0);
   } catch (error) {
     console.error("❌ Ошибка при завершении работы:", error);

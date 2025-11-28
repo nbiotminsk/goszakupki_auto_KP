@@ -141,11 +141,9 @@ class PDFGenerator {
   async generatePDF(data, url = "") {
     await this.ensureGeneratedDir();
 
-    // Подготавливаем данные для шаблона и используем Handlebars
     const templateData = this.prepareTemplateData(data);
     const htmlContent = this.template(templateData);
 
-    // Создаем уникальное имя файла с ID из URL
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -153,9 +151,7 @@ class PDFGenerator {
     const hours = String(now.getHours()).padStart(2, "0");
     const minutes = String(now.getMinutes()).padStart(2, "0");
     const seconds = String(now.getSeconds()).padStart(2, "0");
-    const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
 
-    // Извлекаем ID из URL
     let idFromUrl = "";
     if (url) {
       const urlMatch = url.match(/\/(\d+)(?:\/|$)/);
@@ -169,61 +165,27 @@ class PDFGenerator {
       : `${year}_${month}_${day}_${hours}_${minutes}_${seconds}.pdf`;
     const outputPath = path.join(this.generatedPath, fileName);
 
-    // Проверяем существование изображений
-    const logoPath = path.join(__dirname, "images", "logo.png");
-    const pechatPath = path.join(__dirname, "images", "pechat.jpg");
-
-    if (!fs.existsSync(logoPath)) {
-      console.warn("Предупреждение: Файл логотипа не найден:", logoPath);
-    }
-    if (!fs.existsSync(pechatPath)) {
-      console.warn("Предупреждение: Файл печати не найден:", pechatPath);
-    }
-
-    // Используем существующий браузер или создаем новый для обратной совместимости
-    let browser = this.browser;
+    let browserToUse = this.browser;
     let shouldCloseBrowser = false;
-
-    if (!browser) {
-      browser = await puppeteer.launch({
-        headless: "new",
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--single-process",
-          "--disable-gpu",
-          "--allow-file-access-from-files",
-          "--disable-web-security",
-        ],
-      });
+    if (!browserToUse) {
+      console.log("Внимание: Глобальный браузер не найден. Создается временный экземпляр.");
+      browserToUse = await puppeteer.launch({ headless: "new" });
       shouldCloseBrowser = true;
     }
 
-    let page = null;
+    let context = null;
     try {
-      // Создаем новую страницу для генерации PDF
-      page = await browser.newPage();
+      console.log("Создание инкогнито контекста для генерации PDF...");
+      context = await browserToUse.createIncognitoBrowserContext();
+      const page = await context.newPage();
 
-      // Устанавливаем контент HTML
-      await page.setContent(htmlContent, {
-        waitUntil: "networkidle0",
-      });
+      await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
-      // Генерируем PDF
       await page.pdf({
         path: outputPath,
         format: "A4",
         printBackground: true,
-        margin: {
-          top: "15mm",
-          right: "15mm",
-          bottom: "15mm",
-          left: "15mm",
-        },
+        margin: { top: "15mm", right: "15mm", bottom: "15mm", left: "15mm" },
         displayHeaderFooter: false,
         preferCSSPageSize: true,
       });
@@ -238,13 +200,13 @@ class PDFGenerator {
       console.error("Ошибка при генерации PDF:", error);
       throw new Error(`Не удалось сгенерировать PDF: ${error.message}`);
     } finally {
-      // Закрываем страницу, но не браузер
-      if (page) {
-        await page.close();
+      if (context) {
+        await context.close();
+        console.log("Инкогнито контекст для PDF успешно закрыт.");
       }
-      // Закрываем браузер только если мы его создали
-      if (shouldCloseBrowser && browser) {
-        await browser.close();
+      if (shouldCloseBrowser && browserToUse) {
+        await browserToUse.close();
+        console.log("Временный экземпляр браузера закрыт.");
       }
     }
   }
@@ -257,8 +219,11 @@ class PDFGenerator {
     includeLot2 = false,
     freeDescription = "",
   ) {
-    const parser = require("./parser");
-    const goszakupkiParser = new parser(this.browser);
+    // Импортируем класс парсера
+    const GoszakupkiParser = require("./parser");
+
+    // Передаем централизованный браузер в парсер
+    const goszakupkiParser = new GoszakupkiParser(this.browser);
 
     try {
       // Парсим данные с сайта
@@ -276,15 +241,13 @@ class PDFGenerator {
         console.warn("Второй лот включен, но не найден на странице закупки");
       }
 
-      // Генерируем PDF
+      // Генерируем PDF с использованием того же браузера
       const result = await this.generatePDF(data, url);
 
       return result;
     } catch (error) {
       console.error("Ошибка при генерации PDF из URL:", error);
       throw error;
-    } finally {
-      await goszakupkiParser.close();
     }
   }
 }
