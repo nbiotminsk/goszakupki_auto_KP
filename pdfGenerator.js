@@ -20,6 +20,7 @@ class PDFGenerator {
     this.templatePath = path.join(__dirname, "calculator-template.html");
     this.generatedPath = path.join(__dirname, "generated");
     this.imagesPath = path.join(__dirname, "images");
+    this.parsingCache = new Map();
 
     // Компилируем шаблон Handlebars при инициализации
     this.compileTemplate();
@@ -219,30 +220,43 @@ class PDFGenerator {
     includeLot2 = false,
     freeDescription = "",
   ) {
-    // Импортируем класс парсера
-    const GoszakupkiParser = require("./parser");
+    let data;
 
-    // Передаем централизованный браузер в парсер
-    const goszakupkiParser = new GoszakupkiParser(this.browser);
+    // 1. Проверяем кеш
+    if (this.parsingCache.has(url)) {
+      console.log(`Использование кешированных данных для URL: ${url}`);
+      data = this.parsingCache.get(url);
+    } else {
+      // 2. Если в кеше нет, парсим
+      console.log(`Кеш не найден. Запуск парсинга для URL: ${url}`);
+      const GoszakupkiParser = require("./parser");
+      const goszakupkiParser = new GoszakupkiParser(this.browser);
+      data = await goszakupkiParser.parsePage(url);
+      
+      // 3. Очищаем старый кеш и сохраняем новые данные
+      this.parsingCache.clear();
+      this.parsingCache.set(url, data);
+      console.log(`Данные для URL: ${url} сохранены в кеш (старый кеш очищен).`);
+    }
 
     try {
-      // Парсим данные с сайта
-      const data = await goszakupkiParser.parsePage(url);
-
-      // Добавляем цены за единицу и свободное описание
-      data.UNIT_PRICE = unitPrice;
-      data.UNIT_PRICE_2 = unitPrice2;
-      data.INCLUDE_LOT_1 = includeLot1;
-      data.INCLUDE_LOT_2 = includeLot2;
-      data.FREE_DESCRIPTION = freeDescription;
+      // 4. Клонируем данные из кеша и добавляем/обновляем информацию из текущего запроса
+      const requestSpecificData = {
+        ...data,
+        UNIT_PRICE: unitPrice,
+        UNIT_PRICE_2: unitPrice2,
+        INCLUDE_LOT_1: includeLot1,
+        INCLUDE_LOT_2: includeLot2,
+        FREE_DESCRIPTION: freeDescription,
+      };
 
       // Если второй лот включен, но не найден в данных, добавляем флаг
-      if (includeLot2 && !data.HAS_SECOND_LOT) {
+      if (includeLot2 && !requestSpecificData.HAS_SECOND_LOT) {
         console.warn("Второй лот включен, но не найден на странице закупки");
       }
 
-      // Генерируем PDF с использованием того же браузера
-      const result = await this.generatePDF(data, url);
+      // 5. Генерируем PDF с обновленными данными
+      const result = await this.generatePDF(requestSpecificData, url);
 
       return result;
     } catch (error) {
