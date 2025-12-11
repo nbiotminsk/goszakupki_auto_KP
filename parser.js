@@ -43,6 +43,11 @@ class GoszakupkiParser {
           const element = document.querySelector(selector);
           return element ? element.textContent.trim() : "";
         };
+        
+        // Определяем тип страницы для применения соответствующих селекторов
+        const isRequestViewPage = window.location.href.includes('/request/view/');
+        const isTenderViewPage = window.location.href.includes('/tender/view/');
+        const isContractViewPage = window.location.href.includes('/contract/view/');
 
         // Более надежные селекторы для извлечения данных
         // Ищем ячейки таблицы по текстовым меткам или контексту
@@ -130,7 +135,41 @@ class GoszakupkiParser {
             }
           }
           
-          // Если не нашли в правильной таблице, ищем везде с фильтрацией
+          // Для страниц типа request/view/ ищем УНП в тексте с меткой "УНП"
+          if (isRequestViewPage) {
+            const tds = Array.from(document.querySelectorAll('td'));
+            for (const td of tds) {
+              const text = td.textContent.trim();
+              // Ищем ячейку, содержащую "УНП" и 9-значное число
+              if (text.includes('УНП') && /УНП\s+(\d{9})/.test(text)) {
+                const match = text.match(/УНП\s+(\d{9})/);
+                if (match) return match[1];
+              }
+            }
+            
+            // Если не нашли в тексте с меткой, ищем отдельную ячейку с 9-значным числом
+            // но исключаем номера закупок (обычно они в контексте с другими цифрами)
+            for (const td of tds) {
+              const text = td.textContent.trim();
+              // УНП - это 9-значное число, но не должно быть частью другого текста
+              if (/^\d{9}$/.test(text) && text.length === 9) {
+                // Проверяем, что это не номер закупки (ищем контекст)
+                const parentRow = td.closest('tr');
+                if (parentRow) {
+                  const rowText = parentRow.textContent;
+                  // Если в строке есть слова "номер", "закупки", "лот", то это не УНП
+                  if (!rowText.includes('номер') && 
+                      !rowText.includes('закупки') && 
+                      !rowText.includes('лот') &&
+                      !rowText.includes('№')) {
+                    return text;
+                  }
+                }
+              }
+            }
+          }
+          
+          // Если не нашли в тексте с меткой, ищем везде с фильтрацией
           const tds = Array.from(document.querySelectorAll('td'));
           for (const td of tds) {
             const text = td.textContent.trim();
@@ -165,7 +204,58 @@ class GoszakupkiParser {
             return longestText;
           }
           
-          // Если не нашли в правильной таблице, ищем везде с фильтрацией
+          // Для страниц типа request/view/ ищем название организации в ячейках таблицы
+          if (isRequestViewPage) {
+            // Сначала ищем в первой строке таблицы
+            const firstRowTds = Array.from(document.querySelectorAll('tr:first-child td'));
+            for (const td of firstRowTds) {
+              const text = td.textContent.trim();
+              // Ищем название организации в первой строке
+              if (text.length > 20 && 
+                  !text.includes('Размещение') && 
+                  !text.includes('приглашения') && 
+                  !text.includes('процедуре') &&
+                  !text.includes('закупки') &&
+                  !text.includes('Открыть') &&
+                  !text.includes('Запрос') &&
+                  !/^\d{9}$/.test(text) &&
+                  !text.includes('г. ') &&
+                  !text.includes('@') &&
+                  !text.includes('http')) {
+                return text;
+              }
+            }
+            
+            // Если не нашли в первой строке, ищем во всех ячейках
+            const tds = Array.from(document.querySelectorAll('td'));
+            for (const td of tds) {
+              const text = td.textContent.trim();
+              // Ищем название организации - это текст, который:
+              // 1. Не содержит "Размещение", "приглашения", "процедуре", "закупки", "Открыть", "Запрос"
+              // 2. Не является УНП (9 цифр)
+              // 3. Не является адресом (содержит "г." и индекс)
+              // 4. Достаточно длинный (более 20 символов)
+              // 5. Не содержит email или URL
+              // 6. Не содержит "УНП" или "пл." (признаки контактной информации)
+              if (!text.includes('Размещение') && 
+                  !text.includes('приглашения') && 
+                  !text.includes('процедуре') &&
+                  !text.includes('закупки') &&
+                  !text.includes('Открыть') &&
+                  !text.includes('Запрос') &&
+                  !/^\d{9}$/.test(text) &&
+                  !text.includes('г. ') &&
+                  !text.includes('@') &&
+                  !text.includes('http') &&
+                  !text.includes('УНП') &&
+                  !text.includes('пл.') &&
+                  text.length > 20) {
+                return text;
+              }
+            }
+          }
+          
+          // Если не нашли в первой ячейке, ищем везде с фильтрацией
           const tds = Array.from(document.querySelectorAll('td'));
           for (const td of tds) {
             const text = td.textContent.trim();
@@ -193,7 +283,28 @@ class GoszakupkiParser {
             }
           }
           
-          // Если не нашли в правильной таблице, ищем везде с фильтрацией
+          // Для страниц типа request/view/ ищем адрес в ячейках таблицы
+          if (isRequestViewPage) {
+            const tds = Array.from(document.querySelectorAll('td'));
+            for (const td of tds) {
+              const text = td.textContent.trim();
+              // Ищем адрес - это текст, который:
+              // 1. Содержит "г." (город) и индекс (6 цифр)
+              // 2. Не содержит УНП (9 цифр после "УНП")
+              // 3. Не содержит email или URL
+              // 4. Не является названием организации (слишком длинный и содержит кавычки)
+              if (text.includes('г. ') && 
+                  /\d{6}/.test(text) &&
+                  !/УНП\s+\d{9}/.test(text) &&
+                  !text.includes('@') &&
+                  !text.includes('http') &&
+                  !text.includes('"')) {
+                return text;
+              }
+            }
+          }
+          
+          // Если не нашли во второй ячейке, ищем везде с фильтрацией
           const tds = Array.from(document.querySelectorAll('td'));
           for (const td of tds) {
             const text = td.textContent.trim();
@@ -331,6 +442,7 @@ class GoszakupkiParser {
         };
         
         const debugInfo = {
+          pageType: isRequestViewPage ? "request/view" : (isTenderViewPage ? "tender/view" : (isContractViewPage ? "contract/view" : "unknown")),
           allTdsCount: allTds.length,
           relevantTdsCount: relevantTds.length,
           correctTableTdsCount: correctTableTds.length,
@@ -372,6 +484,7 @@ class GoszakupkiParser {
       // Выводим отладочную информацию
       if (data.DEBUG_INFO) {
         console.log("Отладочная информация:", data.DEBUG_INFO);
+        console.log(`Тип страницы: ${data.DEBUG_INFO.pageType}`);
         console.log(`Всего ячеек TD: ${data.DEBUG_INFO.allTdsCount}`);
         console.log(`Релевантных ячеек TD: ${data.DEBUG_INFO.relevantTdsCount}`);
         console.log(`Ячеек в правильной таблице: ${data.DEBUG_INFO.correctTableTdsCount}`);
