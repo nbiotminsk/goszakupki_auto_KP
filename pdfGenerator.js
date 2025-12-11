@@ -226,6 +226,15 @@ class PDFGenerator {
     if (this.parsingCache.has(url)) {
       console.log(`Использование кешированных данных для URL: ${url}`);
       data = this.parsingCache.get(url);
+      
+      // Проверяем, есть ли данные API и используется ли краткое название
+      if (data.API_DATA && data.API_DATA.shortName && data.COMPANY_NAME !== data.API_DATA.shortName) {
+        console.log(`Обновление названия компании в кешированных данных: ${data.COMPANY_NAME} -> ${data.API_DATA.shortName}`);
+        data.COMPANY_NAME = data.API_DATA.shortName;
+        
+        // Обновляем данные в кеше
+        this.parsingCache.set(url, data);
+      }
     } else {
       // 2. Если в кеше нет, парсим
       console.log(`Кеш не найден. Запуск парсинга для URL: ${url}`);

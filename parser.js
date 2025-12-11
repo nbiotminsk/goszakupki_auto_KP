@@ -1,4 +1,5 @@
 const puppeteer = require("puppeteer");
+const https = require('https');
 
 class GoszakupkiParser {
   constructor(browserInstance = null) {
@@ -8,6 +9,77 @@ class GoszakupkiParser {
       );
     }
     this.browser = browserInstance;
+  }
+
+  // Функция для получения данных о компании через API налоговой службы
+  async getCompanyDataFromAPI(unp) {
+    return new Promise((resolve, reject) => {
+      if (!unp || unp.trim() === '') {
+        resolve(null);
+        return;
+      }
+
+      // Очищаем УНП от лишних символов
+      const cleanUnp = unp.replace(/[^\d]/g, '');
+      
+      if (cleanUnp.length !== 9) {
+        console.log(`Некорректный УНП: ${unp} (очищенный: ${cleanUnp})`);
+        resolve(null);
+        return;
+      }
+
+      const url = `https://grp.nalog.gov.by/api/grp-public/data?unp=${cleanUnp}&charset=UTF-8&type=json`;
+      
+      console.log(`Запрос данных о компании по УНП ${cleanUnp}...`);
+      
+      const request = https.get(url, { 
+        rejectUnauthorized: false // Отключаем проверку сертификата для обхода возможных проблем с SSL
+      }, (response) => {
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          try {
+            const jsonData = JSON.parse(data);
+            if (jsonData.row && jsonData.row.vunp) {
+              console.log(`Получены данные для УНП ${cleanUnp}: ${jsonData.row.vnaimp}`);
+              resolve({
+                unp: jsonData.row.vunp,
+                fullName: jsonData.row.vnaimp,
+                shortName: jsonData.row.vnaimk,
+                address: jsonData.row.vpadres,
+                registrationDate: jsonData.row.dreg,
+                taxOfficeCode: jsonData.row.nmns,
+                taxOfficeName: jsonData.row.vmns,
+                statusCode: jsonData.row.ckodsost,
+                statusName: jsonData.row.vkods,
+                statusChangeDate: jsonData.row.dlikv
+              });
+            } else {
+              console.log(`Данные для УНП ${cleanUnp} не найдены`);
+              resolve(null);
+            }
+          } catch (error) {
+            console.error(`Ошибка парсинга JSON для УНП ${cleanUnp}:`, error);
+            resolve(null);
+          }
+        });
+      });
+      
+      request.on('error', (error) => {
+        console.error(`Ошибка запроса к API для УНП ${cleanUnp}:`, error);
+        resolve(null);
+      });
+      
+      request.setTimeout(5000, () => {
+        request.destroy();
+        console.error(`Таймаут запроса к API для УНП ${cleanUnp}`);
+        resolve(null);
+      });
+    });
   }
 
   async parsePage(url) {
@@ -129,8 +201,8 @@ class GoszakupkiParser {
           const correctTableTds = Array.from(document.querySelectorAll('#print-area > div:nth-child(3) table td'));
           for (const td of correctTableTds) {
             const text = td.textContent.trim();
-            // УНП в Беларуси - это 9-значное число
-            if (/^\d{9}$/.test(text) && text.length === 9) {
+            // УНП в Беларуси - это 9-значное число, исключаем УНП 101223447
+            if (/^\d{9}$/.test(text) && text.length === 9 && text !== '101223447') {
               return text;
             }
           }
@@ -147,12 +219,26 @@ class GoszakupkiParser {
               }
             }
             
-            // Если не нашли в тексте с меткой, ищем отдельную ячейку с 9-значным числом
-            // но исключаем номера закупок (обычно они в контексте с другими цифрами)
+            // Если не нашли в тексте с меткой, ищем в ячейках с информацией об организации
             for (const td of tds) {
               const text = td.textContent.trim();
-              // УНП - это 9-значное число, но не должно быть частью другого текста
-              if (/^\d{9}$/.test(text) && text.length === 9) {
+              // Если ячейка содержит информацию об организации (содержит "РУП", "ОАО" и т.д. или кавычки)
+              // и содержит УНП, извлекаем УНП
+              if ((text.includes('РУП') || text.includes('ОАО') || text.includes('ООО') || 
+                   text.includes('ЗАО') || text.includes('ИП') || text.includes('ГУ') ||
+                   text.includes('"') || text.includes('«') || text.includes('»')) &&
+                  text.includes('УНП')) {
+                const match = text.match(/УНП\s+(\d{9})/);
+                if (match) return match[1];
+              }
+            }
+            
+            // Если не нашли в тексте с меткой, ищем отдельную ячейку с 9-значным числом
+            // но исключаем номера закупок (обычно они в контексте с другими цифрами) и УНП 101223447
+            for (const td of tds) {
+              const text = td.textContent.trim();
+              // УНП - это 9-значное число, но не должно быть частью другого текста, исключаем УНП 101223447
+              if (/^\d{9}$/.test(text) && text.length === 9 && text !== '101223447') {
                 // Проверяем, что это не номер закупки (ищем контекст)
                 const parentRow = td.closest('tr');
                 if (parentRow) {
@@ -164,6 +250,22 @@ class GoszakupkiParser {
                       !rowText.includes('№')) {
                     return text;
                   }
+                } else {
+                  // Дополнительная проверка: исключаем номер закупки по контексту
+                  const allTds = Array.from(document.querySelectorAll('td'));
+                  let isTenderNumber = false;
+                  for (const otherTd of allTds) {
+                    const otherText = otherTd.textContent.trim();
+                    if (otherText.includes('№ закупки в ГИАС:') && 
+                        otherText.includes(text)) {
+                      // Это номер закупки, а не УНП
+                      isTenderNumber = true;
+                      break;
+                    }
+                  }
+                  if (!isTenderNumber) {
+                    return text;
+                  }
                 }
               }
             }
@@ -173,9 +275,10 @@ class GoszakupkiParser {
           const tds = Array.from(document.querySelectorAll('td'));
           for (const td of tds) {
             const text = td.textContent.trim();
-            // УНП в Беларуси - это 9-значное число, но не должно быть частью другого текста
+            // УНП в Беларуси - это 9-значное число, но не должно быть частью другого текста, исключаем УНП 101223447
             if (/^\d{9}$/.test(text) && 
                 text.length === 9 &&
+                text !== '101223447' &&
                 isRelevantContent(text)) {
               return text;
             }
@@ -206,7 +309,50 @@ class GoszakupkiParser {
           
           // Для страниц типа request/view/ ищем название организации в ячейках таблицы
           if (isRequestViewPage) {
-            // Сначала ищем в первой строке таблицы
+            // Сначала ищем в ячейках, содержащих информацию об организации-заказчике
+            const tds = Array.from(document.querySelectorAll('td'));
+            for (const td of tds) {
+              const text = td.textContent.trim();
+              // Ищем название организации - это текст, который:
+              // 1. Содержит "РУП", "ОАО", "ООО" и т.д. или кавычки
+              // 2. Не содержит "Размещение", "приглашения", "процедуре", "закупки", "Открыть", "Запрос"
+              // 3. Не является УНП (9 цифр)
+              // 4. Не является адресом (содержит "г." и индекс)
+              // 5. Достаточно длинный (более 20 символов)
+              // 6. Не содержит email или URL
+              // 7. Не содержит "УНП" или "пл." (признаки контактной информации)
+              // 8. Не содержит "каб." (признак адреса)
+              // 9. Не содержит "info@" (признак email)
+              if ((text.includes('РУП') || text.includes('ОАО') || text.includes('ООО') || 
+                   text.includes('ЗАО') || text.includes('ИП') || text.includes('ГУ') ||
+                   text.includes('"') || text.includes('«') || text.includes('»')) &&
+                  !text.includes('Размещение') && 
+                  !text.includes('приглашения') && 
+                  !text.includes('процедуре') &&
+                  !text.includes('закупки') &&
+                  !text.includes('Открыть') &&
+                  !text.includes('Запрос') &&
+                  !/^\d{9}$/.test(text) &&
+                  !text.includes('г. ') &&
+                  !text.includes('@') &&
+                  !text.includes('http') &&
+                  !text.includes('УНП') &&
+                  !text.includes('пл.') &&
+                  !text.includes('каб.') &&
+                  !text.includes('info@') &&
+                  text.length > 20) {
+                // Если текст содержит кавычки, извлекаем только название организации
+                if (text.includes('"') || text.includes('«') || text.includes('»')) {
+                  const orgMatch = text.match(/["«]([^"»]+)["»]/);
+                  if (orgMatch) {
+                    return orgMatch[1].trim();
+                  }
+                }
+                return text;
+              }
+            }
+            
+            // Если не нашли организацию-заказчика, ищем в первой строке таблицы
             const firstRowTds = Array.from(document.querySelectorAll('tr:first-child td'));
             for (const td of firstRowTds) {
               const text = td.textContent.trim();
@@ -222,34 +368,6 @@ class GoszakupkiParser {
                   !text.includes('г. ') &&
                   !text.includes('@') &&
                   !text.includes('http')) {
-                return text;
-              }
-            }
-            
-            // Если не нашли в первой строке, ищем во всех ячейках
-            const tds = Array.from(document.querySelectorAll('td'));
-            for (const td of tds) {
-              const text = td.textContent.trim();
-              // Ищем название организации - это текст, который:
-              // 1. Не содержит "Размещение", "приглашения", "процедуре", "закупки", "Открыть", "Запрос"
-              // 2. Не является УНП (9 цифр)
-              // 3. Не является адресом (содержит "г." и индекс)
-              // 4. Достаточно длинный (более 20 символов)
-              // 5. Не содержит email или URL
-              // 6. Не содержит "УНП" или "пл." (признаки контактной информации)
-              if (!text.includes('Размещение') && 
-                  !text.includes('приглашения') && 
-                  !text.includes('процедуре') &&
-                  !text.includes('закупки') &&
-                  !text.includes('Открыть') &&
-                  !text.includes('Запрос') &&
-                  !/^\d{9}$/.test(text) &&
-                  !text.includes('г. ') &&
-                  !text.includes('@') &&
-                  !text.includes('http') &&
-                  !text.includes('УНП') &&
-                  !text.includes('пл.') &&
-                  text.length > 20) {
                 return text;
               }
             }
@@ -290,16 +408,39 @@ class GoszakupkiParser {
               const text = td.textContent.trim();
               // Ищем адрес - это текст, который:
               // 1. Содержит "г." (город) и индекс (6 цифр)
-              // 2. Не содержит УНП (9 цифр после "УНП")
-              // 3. Не содержит email или URL
-              // 4. Не является названием организации (слишком длинный и содержит кавычки)
+              // 2. Не содержит email или URL
+              // 3. Не является названием организации (слишком длинный и содержит кавычки)
               if (text.includes('г. ') && 
                   /\d{6}/.test(text) &&
-                  !/УНП\s+\d{9}/.test(text) &&
                   !text.includes('@') &&
-                  !text.includes('http') &&
-                  !text.includes('"')) {
-                return text;
+                  !text.includes('http')) {
+                // Если текст содержит кавычки, это может быть смешанная ячейка с названием организации и адресом
+                if (text.includes('"') || text.includes('«') || text.includes('»')) {
+                  // Извлекаем только адресную часть
+                  const addressMatch = text.match(/(\d{6}[^"»]*)/);
+                  if (addressMatch) {
+                    return addressMatch[1].trim();
+                  }
+                } else {
+                  return text;
+                }
+              }
+            }
+            
+            // Если не нашли адрес в ячейках с индексом, ищем в ячейках с информацией об организации
+            for (const td of tds) {
+              const text = td.textContent.trim();
+              // Если ячейка содержит информацию об организации (содержит "РУП", "ОАО" и т.д. или кавычки)
+              // и содержит адрес, извлекаем адрес
+              if ((text.includes('РУП') || text.includes('ОАО') || text.includes('ООО') || 
+                   text.includes('ЗАО') || text.includes('ИП') || text.includes('ГУ') ||
+                   text.includes('"') || text.includes('«') || text.includes('»')) &&
+                  text.includes('г. ') && /\d{6}/.test(text)) {
+                // Извлекаем только адресную часть
+                const addressMatch = text.match(/(\d{6}[^"»]*)/);
+                if (addressMatch) {
+                  return addressMatch[1].trim();
+                }
               }
             }
           }
@@ -318,38 +459,43 @@ class GoszakupkiParser {
           return "";
         };
 
-        // Сначала пробуем найти данные в конкретных таблицах
-        let companyName = safeExtract("#print-area > div:nth-child(3) > table > tbody > tr:nth-child(1) > td");
-        let unp = safeExtract("#print-area > div:nth-child(3) > table > tbody > tr:nth-child(3) > td");
-        let address = safeExtract("#print-area > div:nth-child(3) > table > tbody > tr:nth-child(2) > td");
+        // Для страниц типа request/view/ сначала используем конкретные селекторы
+        let companyName, unp, address;
+        
+        if (isRequestViewPage) {
+          // Используем селектор, указанный пользователем для названия организации
+          companyName = safeExtract("body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(1) > td");
+          unp = safeExtract("body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(3) > td");
+          address = safeExtract("body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(2) > td");
 
-        // Если не нашли в конкретной таблице, пробуем общие функции поиска
-        if (!companyName) {
-          companyName = findCompanyName();
+          // Очистка названия компании от лишних данных (адрес, УНП и т.д.)
+          if (companyName && companyName.includes('\n')) {
+            companyName = companyName.split('\n')[0].trim();
+          }
+        } else {
+          // Для других типов страниц используем стандартные селекторы
+          companyName = safeExtract("#print-area > div:nth-child(3) > table > tbody > tr:nth-child(1) > td");
+          unp = safeExtract("#print-area > div:nth-child(3) > table > tbody > tr:nth-child(3) > td");
+          address = safeExtract("#print-area > div:nth-child(3) > table > tbody > tr:nth-child(2) > td");
         }
-        if (!unp) {
+
+        // Ищем только УНП на странице, название компании и адрес получим из API
+        if (!unp && !isRequestViewPage) {
           unp = findUNP();
         }
-        if (!address) {
-          address = findAddress();
-        }
+        
+        // Название компании и адрес не парсим со страницы, получим из API
+        companyName = "";
+        address = "";
 
-        // Если и общие функции не сработали, пробуем старые селекторы
-        if (!companyName) {
-          companyName = safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(1) > td",
-          );
-        }
+        // Если УНП не найден, пробуем старый селектор
         if (!unp) {
           unp = safeExtract(
             "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(3) > td",
           );
         }
-        if (!address) {
-          address = safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(2) > td",
-          );
-        }
+        
+        // Название компании и адрес не ищем по старым селекторам, получим из API
 
         // Извлекаем PLACE, PAYMENT и END_DATE с правильными селекторами
         const place =
@@ -469,6 +615,7 @@ class GoszakupkiParser {
           LOT_COUNT_2: lotCount2,
           HAS_SECOND_LOT: hasSecondLot,
           DEBUG_INFO: debugInfo,
+          DATE: date,
         };
       });
 
@@ -497,6 +644,44 @@ class GoszakupkiParser {
           data.DEBUG_INFO.sampleIrrelevantTds.forEach((sample, index) => {
             console.log(`  ${index + 1}. ${sample}`);
           });
+        }
+      }
+      
+      // Получаем данные из API налоговой службы по УНП
+      if (data.UNP && data.UNP.trim() !== '') {
+        console.log(`Получение информации по УНП: ${data.UNP}`);
+        try {
+          const apiData = await this.getCompanyDataFromAPI(data.UNP);
+          if (apiData) {
+            console.log("Данные из API получены успешно");
+            
+            // Добавляем данные из API в результат
+            data.API_DATA = apiData;
+            
+            // Всегда используем краткое название компании из API (VNAIMK)
+            // Если краткое название отсутствует, используем полное
+            if (apiData.shortName) {
+              data.COMPANY_NAME = apiData.shortName;
+              console.log(`Используется краткое название из API: ${data.COMPANY_NAME}`);
+            } else if (apiData.fullName) {
+              data.COMPANY_NAME = apiData.fullName;
+              console.log(`Используется полное название из API: ${data.COMPANY_NAME}`);
+            }
+            
+            // Всегда используем адрес из API
+            data.ADDRESS = apiData.address || '';
+            console.log(`Используется адрес из API: ${data.ADDRESS}`);
+            
+            // Если УНП из страницы отличается от УНП из API, используем правильный
+            if (apiData.unp && data.UNP !== apiData.unp) {
+              console.log(`УНП исправлен: ${data.UNP} -> ${apiData.unp}`);
+              data.UNP = apiData.unp;
+            }
+          } else {
+            console.log("Не удалось получить данные из API налоговой службы");
+          }
+        } catch (error) {
+          console.error("Ошибка при получении данных из API:", error);
         }
       }
       
