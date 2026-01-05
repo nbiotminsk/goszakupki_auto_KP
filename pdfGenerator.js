@@ -104,7 +104,7 @@ class PDFGenerator {
 
     // Преобразуем изображения в base64 для встраивания в HTML
     const logoBase64 = this.imageToBase64("logo.png");
-    const pechatBase64 = this.imageToBase64("pechat.jpg");
+    const pechatBase64 = this.imageToBase64("pechat.png");
 
     // Подготавливаем данные для шаблона Handlebars
     return {
