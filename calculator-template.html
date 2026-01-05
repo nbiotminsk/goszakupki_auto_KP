@@ -168,9 +168,7 @@
                         line-height: 1.4;
                     "
                 >
-                    <strong
-                        >ООО<br />"Хессер-Плюс"</strong
-                    ><br />
+                    <strong>ООО<br />"Хессер-Плюс"</strong><br />
                     УНП 193896074 Р-с BY18 ALFA 3012 2337 1900 1027 0000 в ЗАО
                     "Альфа-банк" 220013, г.Минск, ул.Сурганова, 43 БИК: ALFABY2X
                     Юр. адрес: 220045, г. Минск, ул. Кальварийская, д. 25, пом.
@@ -236,11 +234,15 @@
         <div class="footer-info">
             <p>
                 <strong>Итого:</strong>
-                <span style="font-weight: normal"
-                    >{{formatNumber total_summary}} бел.руб. без НДС согласно
+                <span style="font-weight: normal">
+                    {{#if has_first_lot}} {{#if has_second_lot}} Лот №1:
+                    {{formatNumber total_amount}}, Лот №2: {{formatNumber
+                    total_amount_2}} {{else}} {{formatNumber
+                    total_summary_amount}} {{/if}} {{else}} {{formatNumber
+                    total_summary_amount}} {{/if}} бел.руб. без НДС согласно
                     Главы 32 раздела 7 особенной части налогового кодекса
-                    Республики Беларусь.</span
-                >
+                    Республики Беларусь.
+                </span>
             </p>
             <hr />
             <p>

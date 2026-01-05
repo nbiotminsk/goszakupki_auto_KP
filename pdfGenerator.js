@@ -86,21 +86,17 @@ class PDFGenerator {
       includeLot2 = false; // Если второго лота нет в данных, выключаем его
     }
 
-    // Формируем текст для итоговой суммы (без форматирования, Handlebars сделает это)
-    let totalSummaryText = "";
-    if (includeLot1 && includeLot2) {
-      // Если есть два лота
-      totalSummaryText = `Лот 1: ${totalAmount}, Лот 2: ${totalAmount2}`;
-    } else if (includeLot1) {
-      // Если только первый лот
-      totalSummaryText = `${totalAmount}`;
-    } else if (includeLot2) {
-      // Если только второй лот
-      totalSummaryText = `${totalAmount2}`;
-    }
-
     // Добавляем номер для второго лота
     let lotNumber2 = includeLot1 ? "2" : "1";
+
+    // Рассчитываем общую сумму для всех включенных лотов
+    let totalSummaryAmount = 0;
+    if (includeLot1) {
+      totalSummaryAmount += totalAmount;
+    }
+    if (includeLot2) {
+      totalSummaryAmount += totalAmount2;
+    }
 
     // Преобразуем изображения в base64 для встраивания в HTML
     const logoBase64 = this.imageToBase64("logo.png");
@@ -120,7 +116,7 @@ class PDFGenerator {
       FREE_DESCRIPTION: data.FREE_DESCRIPTION || "",
       unit_price: unitPrice,
       total_amount: totalAmount,
-      total_summary: totalSummaryText,
+      total_summary_amount: totalSummaryAmount,
 
       // Второй лот
       lot_description_2: data.LOT_DESCRIPTION_2 || "",
@@ -169,7 +165,9 @@ class PDFGenerator {
     let browserToUse = this.browser;
     let shouldCloseBrowser = false;
     if (!browserToUse) {
-      console.log("Внимание: Глобальный браузер не найден. Создается временный экземпляр.");
+      console.log(
+        "Внимание: Глобальный браузер не найден. Создается временный экземпляр.",
+      );
       browserToUse = await puppeteer.launch({ headless: "new" });
       shouldCloseBrowser = true;
     }
@@ -226,12 +224,18 @@ class PDFGenerator {
     if (this.parsingCache.has(url)) {
       console.log(`Использование кешированных данных для URL: ${url}`);
       data = this.parsingCache.get(url);
-      
+
       // Проверяем, есть ли данные API и используется ли краткое название
-      if (data.API_DATA && data.API_DATA.shortName && data.COMPANY_NAME !== data.API_DATA.shortName) {
-        console.log(`Обновление названия компании в кешированных данных: ${data.COMPANY_NAME} -> ${data.API_DATA.shortName}`);
+      if (
+        data.API_DATA &&
+        data.API_DATA.shortName &&
+        data.COMPANY_NAME !== data.API_DATA.shortName
+      ) {
+        console.log(
+          `Обновление названия компании в кешированных данных: ${data.COMPANY_NAME} -> ${data.API_DATA.shortName}`,
+        );
         data.COMPANY_NAME = data.API_DATA.shortName;
-        
+
         // Обновляем данные в кеше
         this.parsingCache.set(url, data);
       }
@@ -241,11 +245,13 @@ class PDFGenerator {
       const GoszakupkiParser = require("./parser");
       const goszakupkiParser = new GoszakupkiParser(this.browser);
       data = await goszakupkiParser.parsePage(url);
-      
+
       // 3. Очищаем старый кеш и сохраняем новые данные
       this.parsingCache.clear();
       this.parsingCache.set(url, data);
-      console.log(`Данные для URL: ${url} сохранены в кеш (старый кеш очищен).`);
+      console.log(
+        `Данные для URL: ${url} сохранены в кеш (старый кеш очищен).`,
+      );
     }
 
     try {
