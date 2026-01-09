@@ -1,0 +1,17 @@
+.gitignore
+node_modules/
+test/
+generated/
+.env
+.env.local
+*.log
+README.md
+TELEGRAM_QUICK_START.md
+TELEGRAM_SETUP.md
+UNITS_GUIDE.md
+RAILWAY_DEPLOY.md
+AGENT.md
+CHANGES_SUMMARY.md
+.nyc_output/
+coverage/
+.DS_Store
