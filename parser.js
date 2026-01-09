@@ -643,47 +643,19 @@ class GoszakupkiParser {
         if (lotCountElement) {
           const countText = lotCountElement.textContent.trim();
 
-          // Умное извлечение количества с учетом разных форматов
-          // Форматы могут быть такими:
+          // Простое правило: первое число в тексте = количество
+          // Это работает для всех форматов:
           // 1. "1 условная единица(усл. ед.), 2 243.00 BYN" → количество 1
-          // 2. "1 единица(ед.), 22 581.36 BYN" → количество 22
+          // 2. "1 единица(ед.), 22 581.36 BYN" → количество 1
           // 3. "12 месяц(мес), 9 576.00 BYN" → количество 12
           // 4. "50 шт., 100.00 BYN" → количество 50
 
-          // Сначала ищем число перед сокращением единицы измерения
-          // Паттерн: число + пробел + открывающая скобка (например, "12 (", "50 (")
-          const unitMatch = countText.match(/(\d+)\s*\(/);
+          const numbers = countText.match(/\d+/g);
 
-          if (unitMatch) {
-            // Найдено число перед сокращением единицы
-            lotCount = `${unitMatch[1]} ед.`;
+          if (numbers && numbers.length > 0) {
+            lotCount = `${numbers[0]} ед.`;
           } else {
-            // Если не нашли такой формат, ищем первое число, за которым не следует " условная"
-            // Паттерн: число, за которым идет " BYN" или текст с запятой
-            const numbers = countText.match(/\d+/g);
-
-            if (numbers && numbers.length > 0) {
-              let quantity = numbers[0];
-
-              // Проверяем: если первое число равно 1 и текст содержит "1 условная единица"
-              // или "1 единица(ед.)", то это описание единицы, берем второе число
-              const firstNum = parseInt(numbers[0]);
-              if (firstNum === 1 && countText.includes(" условная")) {
-                // Формат: "1 условная единица(усл. ед.), 2 243.00 BYN"
-                // Количество = 1
-                quantity = numbers[0];
-              } else if (firstNum === 1 && countText.includes("единица(ед.)")) {
-                // Формат: "1 единица(ед.), 22 581.36 BYN"
-                // Количество = 22 (второе число)
-                if (numbers.length > 1) {
-                  quantity = numbers[1];
-                }
-              }
-
-              lotCount = `${quantity} ед.`;
-            } else {
-              lotCount = countText;
-            }
+            lotCount = countText;
           }
         }
 
@@ -702,33 +674,13 @@ class GoszakupkiParser {
           if (lotCountElement2) {
             const countText2 = lotCountElement2.textContent.trim();
 
-            // Та же логика извлечения количества для второго лота
-            const unitMatch2 = countText2.match(/(\d+)\s*\(/);
+            // Та же простая логика для второго лота
+            const numbers2 = countText2.match(/\d+/g);
 
-            if (unitMatch2) {
-              lotCount2 = `${unitMatch2[1]} ед.`;
+            if (numbers2 && numbers2.length > 0) {
+              lotCount2 = `${numbers2[0]} ед.`;
             } else {
-              const numbers2 = countText2.match(/\d+/g);
-
-              if (numbers2 && numbers2.length > 0) {
-                let quantity2 = numbers2[0];
-
-                const firstNum2 = parseInt(numbers2[0]);
-                if (firstNum2 === 1 && countText2.includes(" условная")) {
-                  quantity2 = numbers2[0];
-                } else if (
-                  firstNum2 === 1 &&
-                  countText2.includes("единица(ед.)")
-                ) {
-                  if (numbers2.length > 1) {
-                    quantity2 = numbers2[1];
-                  }
-                }
-
-                lotCount2 = `${quantity2} ед.`;
-              } else {
-                lotCount2 = countText2;
-              }
+              lotCount2 = countText2;
             }
           }
         }
