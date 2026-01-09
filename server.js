@@ -1,7 +1,10 @@
+require("dotenv").config();
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
 const PDFGenerator = require("./pdfGenerator");
+const TelegramSender = require("./telegramSender");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +46,9 @@ async function closeBrowser() {
 // Инициализация генератора PDF с передачей экземпляра браузера
 let pdfGenerator = null;
 
+// Инициализация отправщика Telegram
+let telegramSender = null;
+
 // Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -69,6 +75,8 @@ app.post("/generate", async (req, res) => {
       includeLot1,
       includeLot2,
       freeDescription,
+      unit1,
+      unit2,
     } = req.body;
 
     // Валидация входных данных
@@ -128,12 +136,15 @@ app.post("/generate", async (req, res) => {
       includeLot1,
       includeLot2,
       freeDescription,
+      unit1 || "",
+      unit2 || "",
     );
 
     res.json({
       success: true,
       fileName: result.fileName,
       filePath: result.filePath,
+      url: url, // Добавляем URL закупки в ответ
     });
   } catch (error) {
     console.error("Ошибка при генерации PDF:", error);
@@ -163,6 +174,122 @@ app.use((err, req, res, next) => {
   });
 });
 
+// API для отправки в Telegram
+app.post("/send-to-telegram", async (req, res) => {
+  try {
+    const { chatId, fileName, url, caption } = req.body;
+
+    // Используем Chat ID из запроса или из переменных окружения
+    const finalChatId = chatId || process.env.TELEGRAM_CHAT_ID;
+
+    // Валидация входных данных
+    if (!finalChatId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Необходимо указать Chat ID или настроить TELEGRAM_CHAT_ID в .env",
+      });
+    }
+
+    if (!fileName) {
+      return res.status(400).json({
+        success: false,
+        message: "Необходимо указать имя файла",
+      });
+    }
+
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        message: "Необходимо указать ссылку на закупку",
+      });
+    }
+
+    // Проверяем, доступен ли Telegram бот
+    if (!telegramSender || !telegramSender.isAvailable()) {
+      return res.status(503).json({
+        success: false,
+        message:
+          "Telegram бот недоступен. Проверьте токен бота в переменных окружения TELEGRAM_BOT_TOKEN",
+      });
+    }
+
+    // Формируем полный путь к файлу
+    const filePath = path.join(__dirname, "generated", fileName);
+
+    // Проверяем, существует ли файл
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "Файл не найден",
+      });
+    }
+
+    // Отправляем PDF файл с ссылкой
+    const result = await telegramSender.sendPDFWithLink(
+      finalChatId,
+      filePath,
+      fileName,
+      url,
+      caption || "",
+    );
+
+    res.json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Ошибка при отправке в Telegram:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Внутренняя ошибка сервера",
+    });
+  }
+});
+
+// API для проверки доступности Telegram
+app.get("/telegram-status", async (req, res) => {
+  try {
+    if (!telegramSender) {
+      return res.json({
+        available: false,
+        message: "Telegram отправщик не инициализирован",
+      });
+    }
+
+    const isAvailable = telegramSender.isAvailable();
+
+    if (isAvailable) {
+      try {
+        const botInfo = await telegramSender.getBotInfo();
+        res.json({
+          available: true,
+          botInfo: botInfo,
+          message: "Telegram бот доступен",
+        });
+      } catch (error) {
+        res.json({
+          available: false,
+          message: error.message,
+        });
+      }
+    } else {
+      res.json({
+        available: false,
+        message:
+          "Токен Telegram бота не найден. Установите переменную окружения TELEGRAM_BOT_TOKEN",
+      });
+    }
+  } catch (error) {
+    console.error("Ошибка при проверке статуса Telegram:", error);
+    res.status(500).json({
+      available: false,
+      message: "Внутренняя ошибка сервера",
+    });
+  }
+});
+
 // Обработка 404
 app.use((req, res) => {
   res.status(404).json({
@@ -179,6 +306,9 @@ async function startServer() {
 
     // Затем инициализируем генератор PDF с браузером
     pdfGenerator = new PDFGenerator(browserInstance);
+
+    // Инициализируем отправщик Telegram
+    telegramSender = new TelegramSender();
 
     // Запускаем сервер
     app.listen(PORT, () => {

@@ -205,6 +205,44 @@
                 color: #856404;
                 display: none;
             }
+
+            .action-buttons {
+                display: flex;
+                gap: 10px;
+                margin-top: 15px;
+                flex-wrap: wrap;
+            }
+
+            .telegram-btn {
+                flex: 1;
+                min-width: 200px;
+                padding: 12px 20px;
+                background: linear-gradient(135deg, #0088cc 0%, #00a0dc 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                text-align: center;
+            }
+
+            .telegram-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 136, 204, 0.3);
+            }
+
+            .telegram-btn:active {
+                transform: translateY(0);
+            }
+
+            .telegram-btn:disabled {
+                background: #95a5a6;
+                cursor: not-allowed;
+                transform: none;
+            }
         </style>
     </head>
     <body>
@@ -327,6 +365,43 @@
                             <div class="help-text">
                                 Укажите цену за единицу для первого лота
                             </div>
+                            <label
+                                for="unit1"
+                                style="margin-top: 15px; display: block"
+                                >Единица измерения первого лота</label
+                            >
+                            <select
+                                id="unit1"
+                                name="unit1"
+                                style="
+                                    width: 100%;
+                                    padding: 12px;
+                                    border: 1px solid #ddd;
+                                    border-radius: 8px;
+                                    font-size: 14px;
+                                "
+                            >
+                                <option value="">
+                                    Автоопределение (с сайта)
+                                </option>
+                                <option value="шт.">шт.</option>
+                                <option value="мес.">мес.</option>
+                                <option value="услуга">услуга</option>
+                                <option value="комплект">комплект</option>
+                                <option value="услуга">услуга</option>
+                                <option value="п/м">п/м</option>
+                                <option value="пог.м">пог.м</option>
+                                <option value="кг">кг</option>
+                                <option value="л">л</option>
+                                <option value="м">м</option>
+                                <option value="м²">м²</option>
+                                <option value="м³">м³</option>
+                                <option value="тонна">тонна</option>
+                            </select>
+                            <div class="help-text">
+                                Выберите единицу измерения или оставьте для
+                                автоматического определения
+                            </div>
                         </div>
 
                         <div id="lot2PriceGroup" style="display: none">
@@ -345,6 +420,43 @@
                                 Укажите цену за единицу для второго лота (если
                                 он есть в закупке)
                             </div>
+                            <label
+                                for="unit2"
+                                style="margin-top: 15px; display: block"
+                                >Единица измерения второго лота</label
+                            >
+                            <select
+                                id="unit2"
+                                name="unit2"
+                                style="
+                                    width: 100%;
+                                    padding: 12px;
+                                    border: 1px solid #ddd;
+                                    border-radius: 8px;
+                                    font-size: 14px;
+                                "
+                            >
+                                <option value="">
+                                    Автоопределение (с сайта)
+                                </option>
+                                <option value="шт.">шт.</option>
+                                <option value="мес.">мес.</option>
+                                <option value="услуга">услуга</option>
+                                <option value="комплект">комплект</option>
+                                <option value="услуга">услуга</option>
+                                <option value="п/м">п/м</option>
+                                <option value="пог.м">пог.м</option>
+                                <option value="кг">кг</option>
+                                <option value="л">л</option>
+                                <option value="м">м</option>
+                                <option value="м²">м²</option>
+                                <option value="м³">м³</option>
+                                <option value="тонна">тонна</option>
+                            </select>
+                            <div class="help-text">
+                                Выберите единицу измерения или оставьте для
+                                автоматического определения
+                            </div>
                         </div>
                     </div>
 
@@ -362,6 +474,28 @@
                             Дополнительная информация, которая будет добавлена в
                             коммерческое предложение.<br />
                             Это поле можно оставить пустым.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telegramChatId"
+                            >Telegram Chat ID (необязательно)</label
+                        >
+                        <input
+                            type="text"
+                            id="telegramChatId"
+                            name="telegramChatId"
+                            placeholder="Оставьте пустым для использования Chat ID по умолчанию"
+                        />
+                        <div class="help-text">
+                            Оставьте поле пустым - используется Chat ID из
+                            настроек сервера.<br />
+                            Введите другой Chat ID, чтобы отправить в другой
+                            чат.<br />
+                            Для личного чата: найдите @userinfobot и отправьте
+                            /start<br />
+                            Для группы: добавьте бота в группу и используйте
+                            отрицательный ID
                         </div>
                     </div>
 
@@ -446,6 +580,8 @@
                     const freeDescription = document
                         .getElementById("freeDescription")
                         .value.trim();
+                    const unit1 = document.getElementById("unit1").value.trim();
+                    const unit2 = document.getElementById("unit2").value.trim();
 
                     // Определяем какие лоты включены
                     let includeLot1 =
@@ -507,6 +643,8 @@
                                 includeLot1,
                                 includeLot2,
                                 freeDescription,
+                                unit1: includeLot1 ? unit1 : "",
+                                unit2: includeLot2 ? unit2 : "",
                             }),
                         });
 
@@ -533,13 +671,29 @@
 
             function showSuccess(fileName) {
                 const result = document.getElementById("result");
+                const url = document.getElementById("url").value.trim();
+                const chatId = document
+                    .getElementById("telegramChatId")
+                    .value.trim();
+
                 result.className = "result success";
+
+                // Кнопка Telegram всегда отображается
+                const telegramButtonHtml = `
+                    <button type="button" class="telegram-btn" id="sendToTelegramBtn" onclick="sendToTelegram('${fileName}', '${url}', '${chatId}')">
+                        📤 Отправить в Telegram
+                    </button>
+                `;
+
                 result.innerHTML = `
                 <h3>✅ Коммерческое предложение успешно сгенерировано!</h3>
                 <p>Документ сохранен как: <strong>${fileName}</strong></p>
-                <a href="/download/${fileName}" class="download-link" target="_blank">
-                    📄 Открыть документ
-                </a>
+                <div class="action-buttons">
+                    <a href="/download/${fileName}" class="download-link" target="_blank">
+                        📄 Открыть документ
+                    </a>
+                    ${telegramButtonHtml}
+                </div>
             `;
                 result.style.display = "block";
             }
@@ -559,6 +713,55 @@
                             "https://goszakupki.by/single-source/view/...";
                     }
                 });
+
+            // Функция отправки в Telegram
+            async function sendToTelegram(fileName, url, chatId) {
+                const btn = document.getElementById("sendToTelegramBtn");
+                const originalText = btn.innerHTML;
+
+                try {
+                    btn.disabled = true;
+                    btn.innerHTML = "📤 Отправка...";
+
+                    const response = await fetch("/send-to-telegram", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            chatId: chatId,
+                            fileName: fileName,
+                            url: url,
+                            caption: "",
+                        }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        btn.innerHTML = "✅ Отправлено!";
+                        btn.style.background = "#27ae60";
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                            btn.style.background = "";
+                            btn.disabled = false;
+                        }, 3000);
+                    } else {
+                        throw new Error(data.message || "Не удалось отправить");
+                    }
+                } catch (error) {
+                    btn.innerHTML = "❌ Ошибка";
+                    btn.style.background = "#e74c3c";
+                    showError(
+                        "Ошибка при отправке в Telegram: " + error.message,
+                    );
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.style.background = "";
+                        btn.disabled = false;
+                    }, 3000);
+                }
+            }
         </script>
     </body>
 </html>
