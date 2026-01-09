@@ -4,7 +4,7 @@
   "description": "Система для генерации коммерческих предложений на основе данных с портала госзакупок",
   "main": "server.js",
   "engines": {
-    "node": ">=18.0.0 <=22.17.0"
+    "node": ">=18.0.0"
   },
   "scripts": {
     "start": "node server.js",
@@ -24,7 +24,7 @@
     "express": "^4.18.2",
     "handlebars": "^4.7.8",
     "node-telegram-bot-api": "^0.67.0",
-    "puppeteer": "^22.15.0"
+    "puppeteer": "^24.34.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
