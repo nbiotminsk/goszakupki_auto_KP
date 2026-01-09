@@ -106,6 +106,30 @@ class PDFGenerator {
     const logoBase64 = this.imageToBase64("logo.png");
     const pechatBase64 = this.imageToBase64("pechat.png");
 
+    // Формируем строки количества с единицами измерения
+    let lotCount = "";
+    let lotCount2 = "";
+
+    if (data.UNIT_1 || data.UNIT_2) {
+      if (includeLot1) {
+        lotCount = this.formatLotCount(data.LOT_COUNT || "", data.UNIT_1 || "");
+      }
+      if (includeLot2) {
+        lotCount2 = this.formatLotCount(
+          data.LOT_COUNT_2 || "",
+          data.UNIT_2 || "",
+        );
+      }
+    } else {
+      // Если кастомные единицы не указаны, используем значение из парсинга
+      if (includeLot1) {
+        lotCount = data.LOT_COUNT || "";
+      }
+      if (includeLot2) {
+        lotCount2 = data.LOT_COUNT_2 || "";
+      }
+    }
+
     // Подготавливаем данные для шаблона Handlebars
     return {
       COMPANY_NAME: data.COMPANY_NAME || "",
@@ -116,7 +140,7 @@ class PDFGenerator {
       payment: data.PAYMENT || "",
       END_DATE: data.END_DATE || "",
       lot_description: data.LOT_DESCRIPTION || "",
-      lot_count: data.LOT_COUNT || "",
+      lot_count: lotCount,
       FREE_DESCRIPTION: data.FREE_DESCRIPTION || "",
       unit_price: unitPrice,
       total_amount: totalAmount,
@@ -129,7 +153,7 @@ class PDFGenerator {
 
       // Второй лот
       lot_description_2: data.LOT_DESCRIPTION_2 || "",
-      lot_count_2: data.LOT_COUNT_2 || "",
+      lot_count_2: lotCount2,
       unit_price_2: unitPrice2,
       total_amount_2: totalAmount2,
       lot_number_2: lotNumber2,
@@ -142,6 +166,25 @@ class PDFGenerator {
       LOGO_PATH: logoBase64,
       PECHAT_PATH: pechatBase64,
     };
+  }
+
+  /**
+   * Формирует строку количества с единицей измерения
+   * @param {string} lotCount - исходная строка количества (с единицей)
+   * @param {string} customUnit - кастомная единица измерения
+   * @returns {string} строка вида "2 ед." или "2 шт."
+   */
+  formatLotCount(lotCount, customUnit) {
+    if (!lotCount) return "";
+
+    // Если указана кастомная единица, используем её
+    if (customUnit && customUnit.trim() !== "") {
+      const quantity = this.extractQuantity(lotCount);
+      return quantity > 0 ? `${quantity} ${customUnit}` : lotCount;
+    }
+
+    // Иначе возвращаем исходную строку с единицей из парсинга
+    return lotCount;
   }
 
   async generatePDF(data, url = "") {
@@ -226,6 +269,8 @@ class PDFGenerator {
     includeLot1 = true,
     includeLot2 = false,
     freeDescription = "",
+    unit1 = "",
+    unit2 = "",
   ) {
     let data;
 
@@ -272,6 +317,8 @@ class PDFGenerator {
         INCLUDE_LOT_1: includeLot1,
         INCLUDE_LOT_2: includeLot2,
         FREE_DESCRIPTION: freeDescription,
+        UNIT_1: unit1,
+        UNIT_2: unit2,
       };
 
       // Если второй лот включен, но не найден в данных, добавляем флаг
