@@ -1,5 +1,5 @@
 # Используем официальный Node.js образ
-FROM node:22-slim
+FROM node:18-slim
 
 # Устанавливаем системные зависимости для Puppeteer
 # Минимальный набор необходимых пакетов
@@ -49,8 +49,8 @@ WORKDIR /app
 # Копируем package.json и package-lock.json
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm ci --only=production
+# Устанавливаем зависимости (используем npm install вместо ci для надежности)
+RUN npm install --omit=dev
 
 # Устанавливаем Chrome для Puppeteer
 RUN npx puppeteer browsers install chrome
