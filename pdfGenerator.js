@@ -224,11 +224,9 @@ class PDFGenerator {
       shouldCloseBrowser = true;
     }
 
-    let context = null;
     try {
-      console.log("Создание инкогнито контекста для генерации PDF...");
-      context = await browserToUse.createIncognitoBrowserContext();
-      const page = await context.newPage();
+      console.log("Создание новой страницы для генерации PDF...");
+      const page = await browserToUse.newPage();
 
       await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
@@ -251,9 +249,11 @@ class PDFGenerator {
       console.error("Ошибка при генерации PDF:", error);
       throw new Error(`Не удалось сгенерировать PDF: ${error.message}`);
     } finally {
-      if (context) {
-        await context.close();
-        console.log("Инкогнито контекст для PDF успешно закрыт.");
+      try {
+        await page.close();
+        console.log("Страница для PDF успешно закрыта.");
+      } catch (e) {
+        console.error("Ошибка при закрытии страницы:", e);
       }
       if (shouldCloseBrowser && browserToUse) {
         await browserToUse.close();

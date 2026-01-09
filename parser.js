@@ -89,13 +89,11 @@ class GoszakupkiParser {
   }
 
   async parsePage(url) {
-    let context = null;
     let page = null;
 
     try {
-      console.log("Создание нового инкогнито контекста для парсинга...");
-      context = await this.browser.createIncognitoBrowserContext();
-      page = await context.newPage();
+      console.log("Создание новой страницы для парсинга...");
+      page = await this.browser.newPage();
 
       await page.setViewport({ width: 1280, height: 800 });
       await page.setUserAgent(
@@ -860,15 +858,12 @@ class GoszakupkiParser {
       }
       throw new Error(`Не удалось распарсить страницу: ${error.message}`);
     } finally {
-      if (context) {
+      if (page) {
         try {
-          await context.close();
-          console.log("Инкогнито контекст парсера успешно закрыт.");
+          await page.close();
+          console.log("Страница парсера успешно закрыта.");
         } catch (e) {
-          console.error(
-            "Произошла ошибка при закрытии инкогнито контекста:",
-            e,
-          );
+          console.error("Произошла ошибка при закрытии страницы:", e);
         }
       }
     }
