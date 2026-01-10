@@ -14,6 +14,16 @@ Handlebars.registerHelper("formatNumber", function (number) {
   }).format(number);
 });
 
+Handlebars.registerHelper("multiply", function (a, b) {
+  const numA = typeof a !== "number" ? parseFloat(a) || 0 : a;
+  const numB = typeof b !== "number" ? parseFloat(b) || 0 : b;
+  return numA * numB;
+});
+
+Handlebars.registerHelper("increment", function (index) {
+  return index + 1;
+});
+
 class PDFGenerator {
   constructor(browserInstance = null) {
     this.browser = browserInstance;
@@ -66,22 +76,56 @@ class PDFGenerator {
     const includeLot1 = data.INCLUDE_LOT_1 !== false; // По умолчанию включен
     let unitPrice = 0;
     let totalAmount = 0;
+    let lot1Items = [];
 
     if (includeLot1) {
-      unitPrice = parseFloat(data.UNIT_PRICE || 0);
-      const quantity = this.extractQuantity(data.LOT_COUNT || "0");
-      totalAmount = unitPrice * quantity;
+      // Если есть массив позиций из таблицы, используем его
+      if (
+        data.LOT_1_ITEMS &&
+        Array.isArray(data.LOT_1_ITEMS) &&
+        data.LOT_1_ITEMS.length > 0
+      ) {
+        lot1Items = data.LOT_1_ITEMS;
+        // Рассчитываем общую сумму как сумму всех позиций
+        totalAmount = lot1Items.reduce((sum, item) => {
+          const price = parseFloat(item.price) || 0;
+          const quantity = parseFloat(item.quantity) || 0;
+          return sum + price * quantity;
+        }, 0);
+      } else {
+        // Иначе используем старый формат данных
+        unitPrice = parseFloat(data.UNIT_PRICE || 0);
+        const quantity = this.extractQuantity(data.LOT_COUNT || "0");
+        totalAmount = unitPrice * quantity;
+      }
     }
 
     // Расчет значений для второго лота (если есть и включен)
     let includeLot2 = data.INCLUDE_LOT_2 === true;
     let unitPrice2 = 0;
     let totalAmount2 = 0;
+    let lot2Items = [];
 
     if (includeLot2 && data.HAS_SECOND_LOT) {
-      unitPrice2 = parseFloat(data.UNIT_PRICE_2 || data.UNIT_PRICE || 0);
-      const quantity2 = this.extractQuantity(data.LOT_COUNT_2 || "0");
-      totalAmount2 = unitPrice2 * quantity2;
+      // Если есть массив позиций из таблицы, используем его
+      if (
+        data.LOT_2_ITEMS &&
+        Array.isArray(data.LOT_2_ITEMS) &&
+        data.LOT_2_ITEMS.length > 0
+      ) {
+        lot2Items = data.LOT_2_ITEMS;
+        // Рассчитываем общую сумму как сумму всех позиций
+        totalAmount2 = lot2Items.reduce((sum, item) => {
+          const price = parseFloat(item.price) || 0;
+          const quantity = parseFloat(item.quantity) || 0;
+          return sum + price * quantity;
+        }, 0);
+      } else {
+        // Иначе используем старый формат данных
+        unitPrice2 = parseFloat(data.UNIT_PRICE_2 || data.UNIT_PRICE || 0);
+        const quantity2 = this.extractQuantity(data.LOT_COUNT_2 || "0");
+        totalAmount2 = unitPrice2 * quantity2;
+      }
     } else {
       includeLot2 = false; // Если второго лота нет в данных, выключаем его
     }
@@ -161,6 +205,10 @@ class PDFGenerator {
       // Флаги для условных блоков
       has_first_lot: includeLot1,
       has_second_lot: includeLot2,
+
+      // Массивы позиций для таблиц
+      lot_1_items: lot1Items,
+      lot_2_items: lot2Items,
 
       // Изображения
       LOGO_PATH: logoBase64,

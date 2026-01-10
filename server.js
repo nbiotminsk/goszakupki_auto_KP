@@ -186,6 +186,226 @@ app.post("/generate", async (req, res) => {
   }
 });
 
+// API для генерации KP с ручным вводом данных (без парсинга страницы)
+app.post("/api/generate-manual", async (req, res) => {
+  try {
+    const {
+      // Данные заказчика
+      customerName,
+      customerUnp,
+      customerAddress,
+      // Данные лотов
+      includeLot1,
+      includeLot2,
+      lot1Items,
+      lot2Items,
+      // Дополнительная информация
+      freeDescription,
+      place,
+      payment,
+      endDate,
+    } = req.body;
+
+    // Валидация обязательных полей
+    if (!customerName) {
+      return res.status(400).json({
+        success: false,
+        message: "Необходимо указать название организации",
+      });
+    }
+
+    // Проверяем, что хотя бы один лот включен
+    if (!includeLot1 && !includeLot2) {
+      return res.status(400).json({
+        success: false,
+        message: "Необходимо выбрать хотя бы один лот",
+      });
+    }
+
+    // Проверяем данные для первого лота
+    if (includeLot1) {
+      if (!lot1Items || !Array.isArray(lot1Items) || lot1Items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Необходимо добавить хотя бы одну позицию в первый лот",
+        });
+      }
+      // Валидация каждой позиции в лоте
+      for (let i = 0; i < lot1Items.length; i++) {
+        const item = lot1Items[i];
+        if (!item.name || item.name.trim() === "") {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Необходимо указать наименование во всех позициях первого лота",
+          });
+        }
+        if (!item.quantity || parseFloat(item.quantity) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Количество во всех позициях первого лота должно быть положительным числом",
+          });
+        }
+        if (!item.price || parseFloat(item.price) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Цена во всех позициях первого лота должна быть положительным числом",
+          });
+        }
+      }
+    }
+
+    // Проверяем данные для второго лота
+    if (includeLot2) {
+      if (!lot2Items || !Array.isArray(lot2Items) || lot2Items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Необходимо добавить хотя бы одну позицию во второй лот",
+        });
+      }
+      // Валидация каждой позиции в лоте
+      for (let i = 0; i < lot2Items.length; i++) {
+        const item = lot2Items[i];
+        if (!item.name || item.name.trim() === "") {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Необходимо указать наименование во всех позициях второго лота",
+          });
+        }
+        if (!item.quantity || parseFloat(item.quantity) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Количество во всех позициях второго лота должно быть положительным числом",
+          });
+        }
+        if (!item.price || parseFloat(item.price) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Цена во всех позициях второго лота должна быть положительным числом",
+          });
+        }
+      }
+    }
+
+    console.log(
+      `Начало генерации KP с ручным вводом данных для заказчика: ${customerName}`,
+    );
+
+    // Если указан УНП, пытаемся получить данные из API
+    let apiData = null;
+    if (customerUnp && customerUnp.trim() !== "") {
+      const GoszakupkiParser = require("./parser");
+      const goszakupkiParser = new GoszakupkiParser(browserInstance);
+      apiData = await goszakupkiParser.getCompanyDataFromAPI(customerUnp);
+
+      // Если данные получены из API и указано короткое название, используем его
+      if (apiData && apiData.shortName) {
+        console.log(
+          `Использование данных из API для УНП ${customerUnp}: ${apiData.shortName}`,
+        );
+        // Если пользователь не указал адрес, используем из API
+        if (!customerAddress && apiData.address) {
+          customerAddress = apiData.address;
+        }
+      }
+    }
+
+    // Подготавливаем данные для генерации PDF
+    const data = {
+      COMPANY_NAME: customerName,
+      UNP: customerUnp || "",
+      ADDRESS: customerAddress || "",
+      DATE: new Date().toLocaleDateString("ru-RU"),
+      PLACE: place || "",
+      PAYMENT: payment || "",
+      END_DATE: endDate || "",
+
+      // Первый лот
+      LOT_DESCRIPTION: "",
+      LOT_COUNT: "",
+      UNIT_PRICE: 0,
+      LOT_1_ITEMS: lot1Items || [],
+
+      // Второй лот
+      LOT_DESCRIPTION_2: "",
+      LOT_COUNT_2: "",
+      UNIT_PRICE_2: 0,
+      LOT_2_ITEMS: lot2Items || [],
+      HAS_SECOND_LOT: includeLot2,
+
+      // Дополнительно
+      FREE_DESCRIPTION: freeDescription || "",
+      INCLUDE_LOT_1: includeLot1,
+      INCLUDE_LOT_2: includeLot2,
+      UNIT_1: "",
+      UNIT_2: "",
+
+      // Данные из API
+      API_DATA: apiData,
+    };
+
+    // Генерируем PDF
+    const result = await pdfGenerator.generatePDF(data, "manual");
+
+    res.json({
+      success: true,
+      fileName: result.fileName,
+      filePath: result.filePath,
+      apiData: apiData,
+    });
+  } catch (error) {
+    console.error("Ошибка при генерации KP с ручным вводом:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Внутренняя ошибка сервера",
+    });
+  }
+});
+
+// API для получения данных организации по УНП
+app.get("/api/company/:unp", async (req, res) => {
+  try {
+    const { unp } = req.params;
+
+    if (!unp || unp.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Необходимо указать УНП",
+      });
+    }
+
+    console.log(`Запрос данных по УНП: ${unp}`);
+
+    const GoszakupkiParser = require("./parser");
+    const goszakupkiParser = new GoszakupkiParser(browserInstance);
+
+    const companyData = await goszakupkiParser.getCompanyDataFromAPI(unp);
+
+    if (!companyData) {
+      return res.status(404).json({
+        success: false,
+        message: "Данные по указанному УНП не найдены",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: companyData,
+    });
+  } catch (error) {
+    console.error("Ошибка при получении данных по УНП:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Внутренняя ошибка сервера",
+    });
+  }
+});
+
 // API для проверки статуса сервера
 app.get("/health", (req, res) => {
   res.json({

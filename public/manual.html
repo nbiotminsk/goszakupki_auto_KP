@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Создание коммерческого предложения - Ручной ввод</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 20px;
+                min-height: 100vh;
+            }
+            .container {
+                max-width: 900px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                padding: 30px;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #667eea;
+                padding-bottom: 20px;
+            }
+            .header h1 {
+                color: #333;
+                font-size: 28px;
+                margin-bottom: 10px;
+            }
+            .header p {
+                color: #666;
+                font-size: 14px;
+            }
+            .form-section {
+                margin-bottom: 25px;
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+            }
+            .section-title {
+                color: #667eea;
+                font-size: 18px;
+                font-weight: 600;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+            }
+            .section-title::before {
+                content: "";
+                width: 4px;
+                height: 20px;
+                background: #667eea;
+                margin-right: 10px;
+                border-radius: 2px;
+            }
+            .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            .form-group {
+                margin-bottom: 15px;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 5px;
+                color: #333;
+                font-weight: 500;
+                font-size: 14px;
+            }
+            .form-group input,
+            .form-group textarea,
+            .form-group select {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                font-size: 14px;
+                transition: border-color 0.3s;
+            }
+            .form-group input:focus,
+            .form-group textarea:focus,
+            .form-group select:focus {
+                outline: none;
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+            .form-group textarea {
+                min-height: 80px;
+                resize: vertical;
+            }
+            .checkbox-group {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+            .checkbox-group input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+                cursor: pointer;
+            }
+            .checkbox-group label {
+                cursor: pointer;
+                color: #333;
+                font-weight: 500;
+            }
+            .api-result {
+                background: #e3f2fd;
+                border: 1px solid #90caf9;
+                border-radius: 5px;
+                padding: 10px;
+                margin-top: 10px;
+                display: none;
+            }
+            .api-result.show {
+                display: block;
+            }
+            .api-result h4 {
+                color: #1976d2;
+                margin-bottom: 8px;
+                font-size: 14px;
+            }
+            .api-result p {
+                color: #555;
+                font-size: 13px;
+                margin: 4px 0;
+            }
+            .generate-btn {
+                width: 100%;
+                padding: 15px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition:
+                    transform 0.2s,
+                    box-shadow 0.2s;
+            }
+            .generate-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            }
+            .generate-btn:active {
+                transform: translateY(0);
+            }
+            .generate-btn:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+                transform: none;
+            }
+            .loading {
+                display: none;
+                text-align: center;
+                margin-top: 20px;
+            }
+            .loading.show {
+                display: block;
+            }
+            .spinner {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #667eea;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 10px;
+            }
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+            .result {
+                display: none;
+                margin-top: 20px;
+                padding: 15px;
+                border-radius: 5px;
+            }
+            .result.show {
+                display: block;
+            }
+            .result.success {
+                background: #d4edda;
+                border: 1px solid #c3e6cb;
+                color: #155724;
+            }
+            .result.error {
+                background: #f8d7da;
+                border: 1px solid #f5c6cb;
+                color: #721c24;
+            }
+            .download-link {
+                display: inline-block;
+                margin-top: 10px;
+                padding: 10px 20px;
+                background: #28a745;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                transition: background 0.3s;
+            }
+            .download-link:hover {
+                background: #218838;
+            }
+            .lot-section {
+                background: #fff;
+                padding: 15px;
+                border-radius: 5px;
+                border: 1px solid #ddd;
+                margin-bottom: 15px;
+            }
+            .lot-section.hidden {
+                display: none;
+            }
+            .lot-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #667eea;
+            }
+            .lot-header h3 {
+                color: #333;
+                font-size: 16px;
+            }
+            .lot-number {
+                background: #667eea;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .action-buttons {
+                display: flex;
+                gap: 10px;
+                margin-top: 15px;
+            }
+            .action-btn {
+                flex: 1;
+                padding: 12px;
+                border: none;
+                border-radius: 5px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            .telegram-btn {
+                background: #0088cc;
+                color: white;
+            }
+            .telegram-btn:hover {
+                background: #0077b5;
+            }
+            .telegram-btn:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+            .back-link {
+                display: inline-block;
+                margin-bottom: 20px;
+                color: #667eea;
+                text-decoration: none;
+                font-size: 14px;
+            }
+            .back-link:hover {
+                text-decoration: underline;
+            }
+            .help-text {
+                font-size: 12px;
+                color: #888;
+                margin-top: 5px;
+            }
+            .lot-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                margin-bottom: 15px;
+            }
+            .lot-table th,
+            .lot-table td {
+                border: 1px solid #e0e0e0;
+                padding: 10px;
+                text-align: left;
+            }
+            .lot-table th {
+                background: #f8f9fa;
+                font-weight: 600;
+                color: #2c3e50;
+            }
+            .lot-table input {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                font-size: 0.9rem;
+            }
+            .lot-table input:focus {
+                outline: none;
+                border-color: #3498db;
+            }
+            .table-actions {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+            .table-btn {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 5px;
+                font-size: 0.9rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .table-btn.add {
+                background: #27ae60;
+                color: white;
+            }
+            .table-btn.add:hover {
+                background: #219a52;
+            }
+            .table-btn.remove {
+                background: #e74c3c;
+                color: white;
+            }
+            .table-btn.remove:hover {
+                background: #c0392b;
+            }
+            .table-btn:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+            @media (max-width: 768px) {
+                .form-row {
+                    grid-template-columns: 1fr;
+                }
+                .lot-table {
+                    font-size: 0.85rem;
+                }
+                .lot-table th,
+                .lot-table td {
+                    padding: 6px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <a href="/" class="back-link">← Вернуться на главную</a>
+            <div class="header">
+                <h1>Создание коммерческого предложения</h1>
+                <p>Заполните форму для создания коммерческого предложения</p>
+            </div>
+            <form id="manualForm">
+                <div class="form-section">
+                    <h2 class="section-title">Данные заказчика</h2>
+                    <div class="form-group">
+                        <label for="customerUnp">УНП организации *</label>
+                        <input
+                            type="text"
+                            id="customerUnp"
+                            name="customerUnp"
+                            placeholder="Введите УНП для автозаполнения данных"
+                            maxlength="9"
+                            pattern="\d{9}"
+                            required
+                        />
+                        <p class="help-text">
+                            Введите 9 цифр УНП для автоматического получения
+                            данных из реестра
+                        </p>
+                    </div>
+                    <div id="apiResult" class="api-result">
+                        <h4>✓ Данные получены из реестра:</h4>
+                        <p>
+                            <strong>Название:</strong>
+                            <span id="apiName"></span>
+                        </p>
+                        <p>
+                            <strong>Адрес:</strong>
+                            <span id="apiAddress"></span>
+                        </p>
+                        <p>
+                            <strong>Полное название:</strong>
+                            <span id="apiFullName"></span>
+                        </p>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="customerName"
+                                >Название организации *</label
+                            >
+                            <input
+                                type="text"
+                                id="customerName"
+                                name="customerName"
+                                placeholder="ООО Компания"
+                                required
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="customerAddress"
+                                >Юридический адрес</label
+                            >
+                            <input
+                                type="text"
+                                id="customerAddress"
+                                name="customerAddress"
+                                placeholder="г. Минск, ул. Примерная, 1"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h2 class="section-title">Информация о лотах</h2>
+                    <div class="checkbox-group">
+                        <input
+                            type="checkbox"
+                            id="includeLot1"
+                            name="includeLot1"
+                            checked
+                        />
+                        <label for="includeLot1">Включить первый лот</label>
+                    </div>
+                    <div id="lot1Section" class="lot-section">
+                        <div class="lot-header">
+                            <h3>Первый лот</h3>
+                            <span class="lot-number">Лот 1</span>
+                        </div>
+
+                        <div class="table-actions">
+                            <button
+                                type="button"
+                                class="table-btn add"
+                                onclick="addLotRow('lot1')"
+                            >
+                                + Добавить строку
+                            </button>
+                            <button
+                                type="button"
+                                class="table-btn remove"
+                                onclick="removeLotRow('lot1')"
+                            >
+                                - Удалить строку
+                            </button>
+                        </div>
+                        <table class="lot-table" id="lot1Table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%">Наименование</th>
+                                    <th style="width: 20%">Кол-во</th>
+                                    <th style="width: 15%">Ед. изм.</th>
+                                    <th style="width: 20%">Цена (BYN)</th>
+                                    <th style="width: 5%"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="lot1TableBody">
+                                <tr class="lot-row">
+                                    <td>
+                                        <input
+                                            type="text"
+                                            class="item-name"
+                                            placeholder="Наименование товара/услуги"
+                                            required
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            class="item-quantity"
+                                            placeholder="1"
+                                            min="0.01"
+                                            step="0.01"
+                                            required
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="text"
+                                            class="item-unit"
+                                            placeholder="шт."
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            class="item-price"
+                                            placeholder="0.00"
+                                            min="0.01"
+                                            step="0.01"
+                                            required
+                                        />
+                                    </td>
+                                    <td>
+                                        <button
+                                            type="button"
+                                            class="table-btn remove"
+                                            style="padding: 5px 10px"
+                                            onclick="removeRow(this)"
+                                        >
+                                            ×
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="checkbox-group">
+                        <input
+                            type="checkbox"
+                            id="includeLot2"
+                            name="includeLot2"
+                        />
+                        <label for="includeLot2">Включить второй лот</label>
+                    </div>
+                    <div id="lot2Section" class="lot-section hidden">
+                        <div class="lot-header">
+                            <h3>Второй лот</h3>
+                            <span class="lot-number">Лот 2</span>
+                        </div>
+
+                        <div class="table-actions">
+                            <button
+                                type="button"
+                                class="table-btn add"
+                                onclick="addLotRow('lot2')"
+                            >
+                                + Добавить строку
+                            </button>
+                            <button
+                                type="button"
+                                class="table-btn remove"
+                                onclick="removeLotRow('lot2')"
+                            >
+                                - Удалить строку
+                            </button>
+                        </div>
+                        <table class="lot-table" id="lot2Table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%">Наименование</th>
+                                    <th style="width: 20%">Кол-во</th>
+                                    <th style="width: 15%">Ед. изм.</th>
+                                    <th style="width: 20%">Цена (BYN)</th>
+                                    <th style="width: 5%"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="lot2TableBody">
+                                <tr class="lot-row">
+                                    <td>
+                                        <input
+                                            type="text"
+                                            class="item-name"
+                                            placeholder="Наименование товара/услуги"
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            class="item-quantity"
+                                            placeholder="1"
+                                            min="0.01"
+                                            step="0.01"
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="text"
+                                            class="item-unit"
+                                            placeholder="шт."
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            class="item-price"
+                                            placeholder="0.00"
+                                            min="0.01"
+                                            step="0.01"
+                                        />
+                                    </td>
+                                    <td>
+                                        <button
+                                            type="button"
+                                            class="table-btn remove"
+                                            style="padding: 5px 10px"
+                                            onclick="removeRow(this)"
+                                        >
+                                            ×
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h2 class="section-title">Условия сделки</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="place">Место поставки</label>
+                            <input
+                                type="text"
+                                id="place"
+                                name="place"
+                                placeholder="г. Минск"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="payment">Условия оплаты</label>
+                            <input
+                                type="text"
+                                id="payment"
+                                name="payment"
+                                placeholder="100% предоплата"
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">Срок поставки</label>
+                        <input
+                            type="text"
+                            id="endDate"
+                            name="endDate"
+                            placeholder="в течение 5 дней с момента оплаты"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="freeDescription"
+                            >Дополнительная информация</label
+                        >
+                        <textarea
+                            id="freeDescription"
+                            name="freeDescription"
+                            placeholder="Любая дополнительная информация о заказе"
+                        ></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="generate-btn">
+                    Создать коммерческое предложение
+                </button>
+            </form>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Генерация коммерческого предложения...</p>
+            </div>
+            <div id="result" class="result">
+                <h3 id="resultTitle"></h3>
+                <p id="resultMessage"></p>
+                <a
+                    id="downloadLink"
+                    class="download-link"
+                    href="#"
+                    style="display: none"
+                    >Скачать PDF</a
+                >
+                <div
+                    class="action-buttons"
+                    id="actionButtons"
+                    style="display: none"
+                >
+                    <button id="telegramBtn" class="action-btn telegram-btn">
+                        Отправить в Telegram
+                    </button>
+                </div>
+            </div>
+        </div>
+        <script>
+            document
+                .getElementById("includeLot2")
+                .addEventListener("change", function () {
+                    const lot2Section = document.getElementById("lot2Section");
+                    if (this.checked) {
+                        lot2Section.classList.remove("hidden");
+                        const lot2Inputs = document.querySelectorAll(
+                            "#lot2Table .lot-row input",
+                        );
+                        lot2Inputs.forEach((input) => {
+                            input.required = true;
+                        });
+                    } else {
+                        lot2Section.classList.add("hidden");
+                        const lot2Inputs = document.querySelectorAll(
+                            "#lot2Table .lot-row input",
+                        );
+                        lot2Inputs.forEach((input) => {
+                            input.required = false;
+                        });
+                    }
+                });
+            document
+                .getElementById("includeLot1")
+                .addEventListener("change", function () {
+                    const lot1Section = document.getElementById("lot1Section");
+                    if (this.checked) {
+                        lot1Section.classList.remove("hidden");
+                        const lot1Inputs = document.querySelectorAll(
+                            "#lot1Table .lot-row input",
+                        );
+                        lot1Inputs.forEach((input) => {
+                            input.required = true;
+                        });
+                    } else {
+                        lot1Section.classList.add("hidden");
+                        const lot1Inputs = document.querySelectorAll(
+                            "#lot1Table .lot-row input",
+                        );
+                        lot1Inputs.forEach((input) => {
+                            input.required = false;
+                        });
+                    }
+                });
+
+            function addLotRow(lotId) {
+                const tableBody = document.getElementById(lotId + "TableBody");
+                const newRow = document.createElement("tr");
+                newRow.className = "lot-row";
+                newRow.innerHTML = `
+                    <td>
+                        <input
+                            type="text"
+                            class="item-name"
+                            placeholder="Наименование товара/услуги"
+                        />
+                    </td>
+                    <td>
+                        <input
+                            type="number"
+                            class="item-quantity"
+                            placeholder="1"
+                            min="0.01"
+                            step="0.01"
+                        />
+                    </td>
+                    <td>
+                        <input
+                            type="text"
+                            class="item-unit"
+                            placeholder="шт."
+                        />
+                    </td>
+                    <td>
+                        <input
+                            type="number"
+                            class="item-price"
+                            placeholder="0.00"
+                            min="0.01"
+                            step="0.01"
+                        />
+                    </td>
+                    <td>
+                        <button
+                            type="button"
+                            class="table-btn remove"
+                            style="padding: 5px 10px"
+                            onclick="removeRow(this)"
+                        >
+                            ×
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(newRow);
+            }
+
+            function removeLotRow(lotId) {
+                const tableBody = document.getElementById(lotId + "TableBody");
+                const rows = tableBody.querySelectorAll(".lot-row");
+                if (rows.length > 1) {
+                    tableBody.removeChild(rows[rows.length - 1]);
+                } else {
+                    alert("Должна остаться хотя бы одна строка!");
+                }
+            }
+
+            function removeRow(button) {
+                const row = button.closest(".lot-row");
+                const tableBody = row.parentElement;
+                const rows = tableBody.querySelectorAll(".lot-row");
+                if (rows.length > 1) {
+                    tableBody.removeChild(row);
+                } else {
+                    alert("Должна остаться хотя бы одна строка!");
+                }
+            }
+
+            function collectTableData(event) {
+                event.preventDefault();
+            }
+
+            function getLotTableData(tableId) {
+                const table = document.getElementById(tableId);
+                const rows = table.querySelectorAll(".lot-row");
+                const items = [];
+                rows.forEach((row) => {
+                    items.push({
+                        name: row.querySelector(".item-name").value,
+                        quantity: row.querySelector(".item-quantity").value,
+                        unit: row.querySelector(".item-unit").value,
+                        price: row.querySelector(".item-price").value,
+                    });
+                });
+                return items;
+            }
+
+            let unpDebounceTimer;
+            document
+                .getElementById("customerUnp")
+                .addEventListener("input", function () {
+                    clearTimeout(unpDebounceTimer);
+                    const unp = this.value.replace(/\D/g, "");
+                    if (unp.length === 9) {
+                        unpDebounceTimer = setTimeout(
+                            () => fetchCompanyData(unp),
+                            500,
+                        );
+                    } else {
+                        document
+                            .getElementById("apiResult")
+                            .classList.remove("show");
+                    }
+                });
+            async function fetchCompanyData(unp) {
+                try {
+                    const response = await fetch("/api/company/" + unp);
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        document.getElementById("customerName").value =
+                            data.data.shortName || "";
+                        document.getElementById("customerAddress").value =
+                            data.data.address || "";
+                        document.getElementById("apiName").textContent =
+                            data.data.shortName || "";
+                        document.getElementById("apiAddress").textContent =
+                            data.data.address || "";
+                        document.getElementById("apiFullName").textContent =
+                            data.data.fullName || "";
+                        document
+                            .getElementById("apiResult")
+                            .classList.add("show");
+                    } else {
+                        document
+                            .getElementById("apiResult")
+                            .classList.remove("show");
+                    }
+                } catch (error) {
+                    console.error("Ошибка при получении данных по УНП:", error);
+                    document
+                        .getElementById("apiResult")
+                        .classList.remove("show");
+                }
+            }
+            document
+                .getElementById("manualForm")
+                .addEventListener("submit", async function (e) {
+                    e.preventDefault();
+                    const loading = document.getElementById("loading");
+                    const result = document.getElementById("result");
+                    const generateBtn = document.querySelector(".generate-btn");
+                    result.classList.remove("show", "success", "error");
+                    document.getElementById("downloadLink").style.display =
+                        "none";
+                    document.getElementById("actionButtons").style.display =
+                        "none";
+                    loading.classList.add("show");
+                    generateBtn.disabled = true;
+                    try {
+                        const formData = {
+                            customerName:
+                                document.getElementById("customerName").value,
+                            customerUnp:
+                                document.getElementById("customerUnp").value,
+                            customerAddress:
+                                document.getElementById("customerAddress")
+                                    .value,
+                            includeLot1:
+                                document.getElementById("includeLot1").checked,
+                            includeLot2:
+                                document.getElementById("includeLot2").checked,
+                            lot1Items: getLotTableData("lot1Table"),
+                            lot2Items: getLotTableData("lot2Table"),
+                            place: document.getElementById("place").value,
+                            payment: document.getElementById("payment").value,
+                            endDate: document.getElementById("endDate").value,
+                            freeDescription:
+                                document.getElementById("freeDescription")
+                                    .value,
+                        };
+                        const response = await fetch("/api/generate-manual", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(formData),
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            result.classList.add("show", "success");
+                            document.getElementById("resultTitle").textContent =
+                                "✓ Коммерческое предложение создано";
+                            document.getElementById(
+                                "resultMessage",
+                            ).textContent = "Файл успешно сгенерирован";
+                            const downloadLink =
+                                document.getElementById("downloadLink");
+                            downloadLink.href = "/download/" + data.fileName;
+                            downloadLink.style.display = "inline-block";
+                            downloadLink.textContent = "Скачать PDF";
+                            window.currentFileName = data.fileName;
+                            document.getElementById(
+                                "actionButtons",
+                            ).style.display = "flex";
+                            document.getElementById("telegramBtn").disabled =
+                                false;
+                        } else {
+                            result.classList.add("show", "error");
+                            document.getElementById("resultTitle").textContent =
+                                "✗ Ошибка";
+                            document.getElementById(
+                                "resultMessage",
+                            ).textContent =
+                                data.message ||
+                                "Произошла ошибка при генерации";
+                        }
+                    } catch (error) {
+                        console.error("Ошибка:", error);
+                        result.classList.add("show", "error");
+                        document.getElementById("resultTitle").textContent =
+                            "✗ Ошибка";
+                        document.getElementById("resultMessage").textContent =
+                            "Произошла ошибка при отправке запроса";
+                    } finally {
+                        loading.classList.remove("show");
+                        generateBtn.disabled = false;
+                    }
+                });
+            document
+                .getElementById("telegramBtn")
+                .addEventListener("click", async function () {
+                    const btn = this;
+                    const originalText = btn.textContent;
+                    btn.disabled = true;
+                    btn.textContent = "Отправка...";
+                    try {
+                        const chatId = prompt(
+                            "Введите Chat ID для отправки в Telegram (или оставьте пустым для использования стандартного):",
+                            "",
+                        );
+                        const response = await fetch("/send-to-telegram", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                chatId: chatId || null,
+                                fileName: window.currentFileName,
+                                url: "Создано вручную",
+                                caption:
+                                    "Коммерческое предложение для " +
+                                    document.getElementById("customerName")
+                                        .value,
+                            }),
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            alert("✓ Файл успешно отправлен в Telegram");
+                            btn.style.display = "none";
+                        } else {
+                            alert("✗ Ошибка отправки: " + data.message);
+                            btn.disabled = false;
+                        }
+                    } catch (error) {
+                        console.error("Ошибка отправки в Telegram:", error);
+                        alert("✗ Произошла ошибка при отправке");
+                        btn.disabled = false;
+                    } finally {
+                        btn.textContent = originalText;
+                    }
+                });
+        </script>
+    </body>
+</html>

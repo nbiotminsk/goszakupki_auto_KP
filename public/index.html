@@ -243,6 +243,29 @@
                 cursor: not-allowed;
                 transform: none;
             }
+
+            .manual-btn {
+                display: inline-block;
+                margin-top: 15px;
+                padding: 10px 25px;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: 2px solid white;
+                border-radius: 5px;
+                font-size: 0.95rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-decoration: none;
+            }
+
+            .manual-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+            }
+
+            .manual-btn:active {
+                transform: translateY(0);
+            }
         </style>
     </head>
     <body>
@@ -253,6 +276,7 @@
                     Автоматическая генерация документов на основе данных с
                     портала госзакупок
                 </p>
+                <a href="manual.html" class="manual-btn">Произвольное КП</a>
             </div>
 
             <div class="form-container">
