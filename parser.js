@@ -88,12 +88,61 @@ class GoszakupkiParser {
     });
   }
 
+  /**
+   * Проверяет сетевое соединение перед загрузкой страницы
+   * @param {Page} page - Экземпляр страницы Puppeteer
+   * @param {string} url - URL для проверки соединения
+   */
+  async checkNetworkConnectivity(page, url) {
+    try {
+      // Извлекаем базовый домен из URL
+      const urlObj = new URL(url);
+      const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+
+      // Пытаемся выполнить простой запрос к базовому URL
+      const response = await page.evaluate(async (testUrl) => {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+
+          const response = await fetch(testUrl, {
+            method: "HEAD",
+            signal: controller.signal,
+            cache: "no-cache",
+          });
+
+          clearTimeout(timeoutId);
+          return {
+            status: response.status,
+            ok: response.ok,
+          };
+        } catch (error) {
+          throw new Error(`Сетевая проверка не удалась: ${error.message}`);
+        }
+      }, baseUrl);
+
+      if (!response.ok && response.status !== 0) {
+        throw new Error(`Сервер вернул статус: ${response.status}`);
+      }
+
+      return true;
+    } catch (error) {
+      throw new Error(
+        `Не удалось проверить сетевое соединение: ${error.message}`,
+      );
+    }
+  }
+
   async parsePage(url) {
     let page = null;
 
     try {
       console.log("Создание новой страницы для парсинга...");
       page = await this.browser.newPage();
+
+      // Настройка таймаутов для сетевой стабильности
+      page.setDefaultTimeout(120000); // Общий таймаут для операций
+      page.setDefaultNavigationTimeout(120000); // Таймаут навигации
 
       // Оптимизированная блокировка ресурсов для ускорения загрузки страницы
       // Блокируем только тяжелые ресурсы, оставляем функциональность
@@ -122,15 +171,25 @@ class GoszakupkiParser {
       });
 
       await page.setViewport({ width: 1280, height: 800 });
+
+      // Улучшенный User-Agent с дополнительными заголовками для обхода блокировок
       await page.setUserAgent(
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       );
-      page.setDefaultNavigationTimeout(120000);
+
+      // Дополнительные заголовки для улучшения совместимости
+      await page.setExtraHTTPHeaders({
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+      });
 
       console.log(`Загрузка страницы: ${url}`);
-
-      // Добавляем логику повторных попыток при таймауте
-      let response;
+      let response = null;
       let lastError = null;
       const maxRetries = 3;
 
@@ -139,9 +198,27 @@ class GoszakupkiParser {
           console.log(
             `Попытка ${attempt} из ${maxRetries} для загрузки страницы...`,
           );
+
+          // Перед первой попыткой проверяем сетевое соединение
+          if (attempt === 1) {
+            try {
+              await this.checkNetworkConnectivity(page, url);
+              console.log(
+                "✅ Сетевое соединение подтверждено, начинаем загрузку страницы...",
+              );
+            } catch (networkError) {
+              console.error(`⚠️ Предупреждение: ${networkError.message}`);
+              console.log(
+                "⚠️ Попытаемся загрузить страницу несмотря на проблемы сети...",
+              );
+            }
+          }
+
+          // Используем networkidle2 для более надежной загрузки страницы
           response = await page.goto(url, {
-            waitUntil: "domcontentloaded",
+            waitUntil: ["domcontentloaded", "networkidle2"],
             timeout: 120000,
+            referer: "https://goszakupki.by/",
           });
 
           if (!response.ok()) {
@@ -154,11 +231,68 @@ class GoszakupkiParser {
           break;
         } catch (error) {
           lastError = error;
-          console.error(`Ошибка при попытке ${attempt}:`, error.message);
+          const errorMessage = error.message;
+
+          // Классификация ошибки для определения стратегии повтора
+          const isNetworkError =
+            errorMessage.includes("net::") ||
+            errorMessage.includes("ERR_") ||
+            errorMessage.includes("timeout");
+          const isConnectionError =
+            errorMessage.includes("ERR_CONNECTION") ||
+            errorMessage.includes("ERR_TIMED_OUT");
+
+          console.error(`Ошибка при попытке ${attempt}:`, errorMessage);
+          console.error(`Тип ошибки: ${isNetworkError ? "СЕТЕВАЯ" : "ДРУГАЯ"}`);
 
           if (attempt < maxRetries) {
-            console.log(`Повторная попытка через 5 секунд...`);
-            await new Promise((resolve) => setTimeout(resolve, 5000));
+            // Экспоненциальная задержка с увеличивающимся временем ожидания
+            const delayTime = 5000 * attempt; // 5s, 10s, 15s
+            console.log(
+              `Повторная попытка через ${delayTime / 1000} секунд...`,
+            );
+
+            try {
+              await new Promise((resolve) => setTimeout(resolve, delayTime));
+            } catch (sleepError) {
+              console.error("Ошибка при ожидании:", sleepError.message);
+            }
+
+            // Если это ошибка соединения, дополнительно очищаем контекст страницы
+            if (isConnectionError) {
+              console.log(
+                "Очистка контекста страницы после ошибки соединения...",
+              );
+              try {
+                await page.evaluate(() => {
+                  // Очистка всех активных соединений
+                  if (window.stop) {
+                    window.stop();
+                  }
+                });
+              } catch (cleanupError) {
+                console.error(
+                  "Ошибка при очистке контекста:",
+                  cleanupError.message,
+                );
+              }
+            }
+          } else {
+            // При достижении максимального количества попыток, выводим детальную информацию
+            console.error(
+              `❌ Не удалось загрузить страницу после ${maxRetries} попыток`,
+            );
+            console.error(`❌ Последняя ошибка: ${errorMessage}`);
+            console.error(`❌ URL: ${url}`);
+            console.error(
+              `❌ Время последней попытки: ${new Date().toISOString()}`,
+            );
+
+            if (isNetworkError) {
+              console.error(
+                `❌ КРИТИЧЕСКИЕ СЕТЕВЫЕ ПРОБЛЕМЫ: Проверьте подключение к интернету или доступность сайта`,
+              );
+            }
           }
         }
       }
