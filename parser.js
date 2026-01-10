@@ -95,24 +95,128 @@ class GoszakupkiParser {
       console.log("Создание новой страницы для парсинга...");
       page = await this.browser.newPage();
 
+      // Оптимизированная блокировка ресурсов для ускорения загрузки страницы
+      // Блокируем только тяжелые ресурсы, оставляем функциональность
+      await page.setRequestInterception(true);
+      page.on("request", (request) => {
+        const resourceType = request.resourceType();
+        const url = request.url();
+
+        // Разрешаем критические типы ресурсов для работы сайта
+        const allowedTypes = [
+          "document", // HTML страницы
+          "script", // JavaScript для функциональности
+          "xhr", // AJAX запросы
+          "fetch", // Fetch API запросы
+          "stylesheet", // CSS для правильной структуры DOM
+          "websocket", // WebSocket соединения
+          "font", // Шрифты для корректного отображения текста
+        ];
+
+        if (allowedTypes.includes(resourceType)) {
+          request.continue();
+        } else {
+          // Блокируем изображения, медиа и другие тяжелые ресурсы
+          request.abort();
+        }
+      });
+
       await page.setViewport({ width: 1280, height: 800 });
       await page.setUserAgent(
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       );
-      page.setDefaultNavigationTimeout(45000);
+      page.setDefaultNavigationTimeout(120000);
 
       console.log(`Загрузка страницы: ${url}`);
-      const response = await page.goto(url, { waitUntil: "domcontentloaded" });
 
-      if (!response.ok()) {
-        throw new Error(
-          `Не удалось загрузить страницу, статус: ${response.status()}`,
+      // Добавляем логику повторных попыток при таймауте
+      let response;
+      let lastError = null;
+      const maxRetries = 3;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(
+            `Попытка ${attempt} из ${maxRetries} для загрузки страницы...`,
+          );
+          response = await page.goto(url, {
+            waitUntil: "domcontentloaded",
+            timeout: 120000,
+          });
+
+          if (!response.ok()) {
+            throw new Error(
+              `Не удалось загрузить страницу, статус: ${response.status()}`,
+            );
+          }
+
+          // Если загрузка успешна, выходим из цикла
+          break;
+        } catch (error) {
+          lastError = error;
+          console.error(`Ошибка при попытке ${attempt}:`, error.message);
+
+          if (attempt < maxRetries) {
+            console.log(`Повторная попытка через 5 секунд...`);
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+          }
+        }
+      }
+
+      // Если все попытки неудачны, выбрасываем последнюю ошибку
+      if (!response) {
+        throw (
+          lastError ||
+          new Error("Не удалось загрузить страницу после нескольких попыток")
         );
       }
 
       console.log(`Страница успешно загружена, статус: ${response.status()}`);
 
-      await page.waitForSelector("body", { timeout: 15000 });
+      // Проверяем состояние страницы и логируем дополнительную информацию
+      console.log("Проверка состояния страницы...");
+      const pageTitle = await page
+        .title()
+        .catch(() => "Не удалось получить заголовок");
+      console.log(`Заголовок страницы: ${pageTitle}`);
+
+      const pageUrl = page.url();
+      console.log(`Текущий URL: ${pageUrl}`);
+
+      // Ждем появления body с увеличенным таймаутом и обработкой ошибок
+      await page.waitForSelector("body", { timeout: 30000 }).catch((error) => {
+        console.error("Ошибка при ожидании элемента body:", error.message);
+        // Продолжаем выполнение даже если body не найден
+      });
+
+      // Добавляем паузу для полной загрузки динамического контента
+      console.log("Ожидание загрузки динамического контента...");
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // Проверяем наличие основных элементов страницы
+      console.log("Проверка наличия основных элементов...");
+      const bodyContent = await page
+        .evaluate(() => {
+          return {
+            bodyExists: !!document.body,
+            bodyHtmlLength: document.body ? document.body.innerHTML.length : 0,
+            hasTables: document.querySelectorAll("table").length,
+            hasLotRows: document.querySelectorAll("tr.lot-row").length,
+          };
+        })
+        .catch((error) => {
+          console.error("Ошибка при проверке элементов:", error.message);
+          return null;
+        });
+
+      if (bodyContent) {
+        console.log(
+          `Состояние DOM: body=${bodyContent.bodyExists}, htmlLength=${bodyContent.bodyHtmlLength}`,
+        );
+        console.log(
+          `Найдено таблиц: ${bodyContent.hasTables}, строк лотов: ${bodyContent.hasLotRows}`,
+        );
+      }
 
       const data = await page.evaluate(() => {
         const safeExtract = (selector) => {
