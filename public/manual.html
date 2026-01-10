@@ -361,9 +361,308 @@
                     padding: 6px;
                 }
             }
+
+            /* Стили для модального окна */
+            .catalog-btn {
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                transition: all 0.3s ease;
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .catalog-btn:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            }
+
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 2000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+            }
+
+            .modal.show {
+                display: block;
+            }
+
+            .modal-content {
+                background-color: #fff;
+                margin: 5% auto;
+                padding: 0;
+                border-radius: 10px;
+                width: 90%;
+                max-width: 900px;
+                max-height: 80vh;
+                overflow: hidden;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            }
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px 30px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            .modal-header h2 {
+                margin: 0;
+                font-size: 1.5rem;
+                font-weight: 600;
+            }
+
+            .modal-close {
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: none;
+                font-size: 32px;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .modal-close:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            .modal-body {
+                padding: 30px;
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+
+            .catalog-add-form {
+                display: grid;
+                grid-template-columns: 2fr 1fr 1fr auto;
+                gap: 10px;
+                margin-bottom: 20px;
+                padding-bottom: 20px;
+                border-bottom: 2px solid #e0e0e0;
+            }
+
+            .catalog-add-form input {
+                padding: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 5px;
+                font-size: 1rem;
+                transition: all 0.3s ease;
+            }
+
+            .catalog-add-form input:focus {
+                outline: none;
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+
+            .catalog-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+            }
+
+            .catalog-table th,
+            .catalog-table td {
+                border: 1px solid #e0e0e0;
+                padding: 12px;
+                text-align: left;
+            }
+
+            .catalog-table th {
+                background: #f8f9fa;
+                font-weight: 600;
+                color: #2c3e50;
+                position: sticky;
+                top: 0;
+            }
+
+            .catalog-table tr:hover {
+                background: #f8f9fa;
+            }
+
+            .catalog-table input {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                font-size: 0.9rem;
+            }
+
+            .catalog-table input:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+
+            .catalog-actions {
+                display: flex;
+                gap: 5px;
+            }
+
+            .catalog-actions button {
+                padding: 5px 10px;
+                font-size: 0.85rem;
+            }
+
+            @media (max-width: 768px) {
+                .catalog-add-form {
+                    grid-template-columns: 1fr;
+                }
+
+                .catalog-btn {
+                    width: 50px;
+                    height: 50px;
+                    font-size: 20px;
+                    bottom: 20px;
+                    right: 20px;
+                }
+
+                .modal-content {
+                    width: 95%;
+                    margin: 10% auto;
+                }
+
+                .catalog-table th,
+                .catalog-table td {
+                    padding: 8px;
+                    font-size: 0.85rem;
+                }
+            }
         </style>
     </head>
     <body>
+        <datalist id="unitOptions">
+            <option value="шт." />
+            <option value="ком." />
+            <option value="мес." />
+            <option value="год" />
+            <option value="день" />
+            <option value="час" />
+            <option value="кг" />
+            <option value="т" />
+            <option value="м" />
+            <option value="м²" />
+            <option value="м³" />
+            <option value="л" />
+            <option value="пог. м" />
+            <option value="усл." />
+            <option value="набор" />
+        </datalist>
+
+        <datalist id="itemCatalog"></datalist>
+
+        <!-- Модальное окно справочника -->
+        <div id="catalogModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Справочник товаров и услуг</h2>
+                    <div style="display: flex; align-items: center; gap: 20px">
+                        <span
+                            id="catalogCount"
+                            style="font-size: 0.9rem; opacity: 0.9"
+                        >
+                            Товаров: 0
+                        </span>
+                        <button
+                            class="modal-close"
+                            onclick="closeCatalogModal()"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="catalog-add-form">
+                        <input
+                            type="text"
+                            id="newItemName"
+                            placeholder="Наименование товара/услуги"
+                        />
+                        <input
+                            type="number"
+                            id="newItemPrice"
+                            placeholder="Цена (BYN)"
+                            step="0.01"
+                            min="0"
+                        />
+                        <input
+                            type="text"
+                            id="newItemUnit"
+                            placeholder="Ед. изм."
+                            list="unitOptions"
+                        />
+                        <button
+                            type="button"
+                            class="table-btn add"
+                            onclick="addCatalogItem()"
+                        >
+                            + Добавить
+                        </button>
+                    </div>
+                    <table class="catalog-table">
+                        <thead>
+                            <tr>
+                                <th>Наименование</th>
+                                <th>Цена (BYN)</th>
+                                <th>Ед. изм.</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogTableBody"></tbody>
+                    </table>
+                    <div
+                        style="
+                            margin-top: 20px;
+                            text-align: right;
+                            padding-top: 15px;
+                            border-top: 2px solid #e0e0e0;
+                        "
+                    >
+                        <button
+                            type="button"
+                            class="generate-btn"
+                            onclick="saveCatalogChanges()"
+                            style="padding: 12px 30px"
+                        >
+                            💾 Сохранить изменения
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопка открытия справочника (скрыта, теперь есть кнопки в таблицах) -->
+        <button
+            class="catalog-btn"
+            onclick="openCatalogModal()"
+            title="Открыть справочник"
+            style="display: none"
+        >
+            📚
+        </button>
+
         <div class="container">
             <a href="/" class="back-link">← Вернуться на главную</a>
             <div class="header">
@@ -462,6 +761,14 @@
                             >
                                 - Удалить строку
                             </button>
+                            <button
+                                type="button"
+                                class="table-btn"
+                                onclick="openCatalogModal()"
+                                style="background: #f39c12; color: white"
+                            >
+                                📚 Справочник
+                            </button>
                         </div>
                         <table class="lot-table" id="lot1Table">
                             <thead>
@@ -480,6 +787,8 @@
                                             type="text"
                                             class="item-name"
                                             placeholder="Наименование товара/услуги"
+                                            list="itemCatalog"
+                                            onchange="onItemNameChange(this)"
                                             required
                                         />
                                     </td>
@@ -498,6 +807,7 @@
                                             type="text"
                                             class="item-unit"
                                             placeholder="шт."
+                                            list="unitOptions"
                                         />
                                     </td>
                                     <td>
@@ -553,6 +863,14 @@
                             >
                                 - Удалить строку
                             </button>
+                            <button
+                                type="button"
+                                class="table-btn"
+                                onclick="openCatalogModal()"
+                                style="background: #f39c12; color: white"
+                            >
+                                📚 Справочник
+                            </button>
                         </div>
                         <table class="lot-table" id="lot2Table">
                             <thead>
@@ -571,6 +889,8 @@
                                             type="text"
                                             class="item-name"
                                             placeholder="Наименование товара/услуги"
+                                            list="itemCatalog"
+                                            onchange="onItemNameChange(this)"
                                         />
                                     </td>
                                     <td>
@@ -587,6 +907,7 @@
                                             type="text"
                                             class="item-unit"
                                             placeholder="шт."
+                                            list="unitOptions"
                                         />
                                     </td>
                                     <td>
@@ -623,6 +944,7 @@
                                 id="place"
                                 name="place"
                                 placeholder="г. Минск"
+                                value="г. Минск"
                             />
                         </div>
                         <div class="form-group">
@@ -632,6 +954,7 @@
                                 id="payment"
                                 name="payment"
                                 placeholder="100% предоплата"
+                                value="100% предоплата"
                             />
                         </div>
                     </div>
@@ -740,6 +1063,8 @@
                             type="text"
                             class="item-name"
                             placeholder="Наименование товара/услуги"
+                            list="itemCatalog"
+                            onchange="onItemNameChange(this)"
                         />
                     </td>
                     <td>
@@ -756,6 +1081,7 @@
                             type="text"
                             class="item-unit"
                             placeholder="шт."
+                            list="unitOptions"
                         />
                     </td>
                     <td>
@@ -819,6 +1145,194 @@
                     });
                 });
                 return items;
+            }
+
+            // Функции для работы со справочником
+            let catalogData = [];
+
+            // Загрузка справочника при загрузке страницы
+            document.addEventListener("DOMContentLoaded", function () {
+                loadCatalog();
+            });
+
+            function loadCatalog() {
+                fetch("/data/catalog.json")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        catalogData = data;
+                        updateCatalogDatalist();
+                        updateCatalogTable();
+                    })
+                    .catch((error) => {
+                        console.error("Ошибка загрузки справочника:", error);
+                    });
+            }
+
+            function saveCatalog() {
+                fetch("/api/save-catalog", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(catalogData),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            alert("Справочник успешно сохранен!");
+                            updateCatalogDatalist();
+                            updateCatalogTable();
+                        } else {
+                            alert("Ошибка сохранения: " + data.message);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Ошибка сохранения справочника:", error);
+                        alert("Произошла ошибка при сохранении");
+                    });
+            }
+
+            function updateCatalogDatalist() {
+                const datalist = document.getElementById("itemCatalog");
+                datalist.innerHTML = "";
+                catalogData.forEach((item) => {
+                    const option = document.createElement("option");
+                    option.value = item.name;
+                    option.setAttribute("data-price", item.price);
+                    option.setAttribute("data-unit", item.unit);
+                    datalist.appendChild(option);
+                });
+            }
+
+            function updateCatalogTable() {
+                const tbody = document.getElementById("catalogTableBody");
+                tbody.innerHTML = "";
+                catalogData.forEach((item, index) => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td><input type="text" value="${item.name}" onchange="updateCatalogItem(${index}, 'name', this.value)"></td>
+                        <td><input type="number" value="${item.price}" step="0.01" min="0" onchange="updateCatalogItem(${index}, 'price', this.value)"></td>
+                        <td><input type="text" value="${item.unit}" list="unitOptions" onchange="updateCatalogItem(${index}, 'unit', this.value)"></td>
+                        <td class="catalog-actions">
+                            <button class="table-btn remove" onclick="deleteCatalogItem(${index})">Удалить</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                updateCatalogCount();
+            }
+
+            function openCatalogModal() {
+                document.getElementById("catalogModal").classList.add("show");
+                updateCatalogTable();
+            }
+
+            function closeCatalogModal() {
+                document
+                    .getElementById("catalogModal")
+                    .classList.remove("show");
+            }
+
+            function addCatalogItem() {
+                const nameInput = document.getElementById("newItemName");
+                const priceInput = document.getElementById("newItemPrice");
+                const unitInput = document.getElementById("newItemUnit");
+
+                const name = nameInput.value.trim();
+                const price = parseFloat(priceInput.value);
+                const unit = unitInput.value.trim();
+
+                if (!name) {
+                    alert("Введите наименование товара/услуги");
+                    return;
+                }
+
+                if (isNaN(price) || price < 0) {
+                    alert("Введите корректную цену");
+                    return;
+                }
+
+                if (!unit) {
+                    alert("Введите единицу измерения");
+                    return;
+                }
+
+                catalogData.push({
+                    name: name,
+                    price: price.toFixed(2),
+                    unit: unit,
+                });
+
+                // Очищаем поля ввода
+                nameInput.value = "";
+                priceInput.value = "";
+                unitInput.value = "";
+
+                // Сохраняем изменения
+                saveCatalog();
+            }
+
+            function updateCatalogItem(index, field, value) {
+                if (field === "price") {
+                    const numValue = parseFloat(value);
+                    if (isNaN(numValue) || numValue < 0) {
+                        alert("Введите корректную цену");
+                        updateCatalogTable();
+                        return;
+                    }
+                    catalogData[index][field] = numValue.toFixed(2);
+                } else {
+                    catalogData[index][field] = value.trim();
+                }
+                // Обновляем счетчик товаров
+                updateCatalogCount();
+            }
+
+            function deleteCatalogItem(index) {
+                if (confirm("Удалить этот товар из справочника?")) {
+                    catalogData.splice(index, 1);
+                    updateCatalogCount();
+                    updateCatalogTable();
+                    updateCatalogDatalist();
+                    saveCatalog();
+                }
+            }
+
+            function updateCatalogCount() {
+                document.getElementById("catalogCount").textContent =
+                    `Товаров: ${catalogData.length}`;
+            }
+
+            function saveCatalogChanges() {
+                saveCatalog();
+            }
+
+            function onItemNameChange(inputElement) {
+                const selectedOption = Array.from(
+                    document.querySelectorAll("#itemCatalog option"),
+                ).find((option) => option.value === inputElement.value);
+
+                if (
+                    selectedOption &&
+                    (selectedOption.dataset.price ||
+                        selectedOption.getAttribute("data-price"))
+                ) {
+                    const row = inputElement.closest("tr");
+                    const priceInput = row.querySelector(".item-price");
+                    const unitInput = row.querySelector(".item-unit");
+
+                    const price =
+                        selectedOption.dataset.price ||
+                        selectedOption.getAttribute("data-price");
+                    const unit =
+                        selectedOption.dataset.unit ||
+                        selectedOption.getAttribute("data-unit");
+
+                    if (price) {
+                        priceInput.value = price;
+                    }
+                    if (unit) {
+                        unitInput.value = unit;
+                    }
+                }
             }
 
             let unpDebounceTimer;

@@ -86,6 +86,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Статические файлы
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/images", express.static(path.join(__dirname, "images")));
+app.use("/data", express.static(path.join(__dirname, "data")));
 
 // Раздача сгенерированных файлов
 app.use("/download", express.static(path.join(__dirname, "generated")));
@@ -363,6 +364,36 @@ app.post("/api/generate-manual", async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Внутренняя ошибка сервера",
+    });
+  }
+});
+
+// API для сохранения справочника
+app.post("/api/save-catalog", async (req, res) => {
+  try {
+    const catalogData = req.body;
+    const catalogPath = path.join(__dirname, "data", "catalog.json");
+
+    // Проверяем наличие папки data, создаем если нет
+    const dataDir = path.join(__dirname, "data");
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    // Сохраняем данные в файл
+    fs.writeFileSync(catalogPath, JSON.stringify(catalogData, null, 2), "utf8");
+
+    console.log("✅ Справочник успешно сохранен:", catalogPath);
+
+    res.json({
+      success: true,
+      message: "Справочник успешно сохранен",
+    });
+  } catch (error) {
+    console.error("❌ Ошибка при сохранении справочника:", error);
+    res.status(500).json({
+      success: false,
+      message: "Ошибка при сохранении справочника: " + error.message,
     });
   }
 });
