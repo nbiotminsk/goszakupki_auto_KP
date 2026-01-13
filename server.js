@@ -176,6 +176,8 @@ app.post("/generate", async (req, res) => {
       fileName: result.fileName,
       filePath: result.filePath,
       url: url, // Добавляем URL закупки в ответ
+      companyShortName: result.companyShortName || "", // Краткое название организации
+      proposalEndDate: result.proposalEndDate || "", // Подать до
     });
   } catch (error) {
     console.error("Ошибка при генерации PDF:", error);
@@ -458,7 +460,14 @@ app.use((err, req, res, next) => {
 // API для отправки в Telegram
 app.post("/send-to-telegram", async (req, res) => {
   try {
-    const { chatId, fileName, url, caption } = req.body;
+    const {
+      chatId,
+      fileName,
+      url,
+      caption,
+      proposalEndDate,
+      companyShortName,
+    } = req.body;
 
     // Используем Chat ID из запроса или из переменных окружения
     const finalChatId = chatId || process.env.TELEGRAM_CHAT_ID;
@@ -484,6 +493,19 @@ app.post("/send-to-telegram", async (req, res) => {
         success: false,
         message: "Необходимо указать ссылку на закупку",
       });
+    }
+
+    // Формируем текст сообщения с дополнительными данными
+    let messageText = caption || "";
+
+    if (companyShortName) {
+      messageText +=
+        (messageText ? "\n" : "") + `📢 Организация: ${companyShortName}`;
+    }
+
+    if (proposalEndDate) {
+      messageText +=
+        (messageText ? "\n" : "") + `⏰ Подать до: ${proposalEndDate}`;
     }
 
     // Проверяем, доступен ли Telegram бот
@@ -512,7 +534,7 @@ app.post("/send-to-telegram", async (req, res) => {
       filePath,
       fileName,
       url,
-      caption || "",
+      messageText,
     );
 
     res.json({

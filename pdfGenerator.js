@@ -67,8 +67,29 @@ class PDFGenerator {
 
   extractQuantity(lotCount) {
     // Извлекаем числовое значение из строки "2 ед." или "2 Единица(ед.)"
+    // Если значение не найдено или пустое, возвращаем 0
+    if (!lotCount || lotCount.trim() === "") {
+      return 0;
+    }
     const match = lotCount.match(/(\d+)/);
     return match ? parseInt(match[1]) : 0;
+  }
+
+  /**
+   * Извлекает единицу измерения из строки с количеством
+   * @param {string} lotCount - строка вида "1 ед.", "2 шт.", "12 мес"
+   * @returns {string} единица измерения без числа
+   */
+  extractUnit(lotCount) {
+    if (!lotCount) return "ед.";
+    // Убираем ведущее число и пробелы
+    let unit = lotCount.replace(/^\d+\s*/, "").trim();
+    // Обрезаем все, что идет после запятой (цена и валюта)
+    const commaIndex = unit.indexOf(",");
+    if (commaIndex > 0) {
+      unit = unit.substring(0, commaIndex).trim();
+    }
+    return unit || "ед.";
   }
 
   prepareTemplateData(data) {
@@ -153,24 +174,37 @@ class PDFGenerator {
     // Формируем строки количества с единицами измерения
     let lotCount = "";
     let lotCount2 = "";
+    let lotUnit = "";
+    let lotUnit2 = "";
 
     if (data.UNIT_1 || data.UNIT_2) {
       if (includeLot1) {
-        lotCount = this.formatLotCount(data.LOT_COUNT || "", data.UNIT_1 || "");
+        const quantity = this.extractQuantity(data.LOT_COUNT || "");
+        lotCount = `${quantity}`;
+        lotUnit = data.UNIT_1 || "";
       }
       if (includeLot2) {
-        lotCount2 = this.formatLotCount(
-          data.LOT_COUNT_2 || "",
-          data.UNIT_2 || "",
-        );
+        const quantity2 = this.extractQuantity(data.LOT_COUNT_2 || "");
+        lotCount2 = `${quantity2}`;
+        lotUnit2 = data.UNIT_2 || "";
       }
     } else {
       // Если кастомные единицы не указаны, используем значение из парсинга
       if (includeLot1) {
         lotCount = data.LOT_COUNT || "";
+        // Извлекаем количество отдельно от единицы измерения
+        const quantity = this.extractQuantity(data.LOT_COUNT || "");
+        const unit = this.extractUnit(data.LOT_COUNT || "");
+        lotCount = `${quantity}`;
+        lotUnit = unit || "ед.";
       }
       if (includeLot2) {
         lotCount2 = data.LOT_COUNT_2 || "";
+        // Извлекаем количество отдельно от единицы измерения
+        const quantity2 = this.extractQuantity(data.LOT_COUNT_2 || "");
+        const unit2 = this.extractUnit(data.LOT_COUNT_2 || "");
+        lotCount2 = `${quantity2}`;
+        lotUnit2 = unit2 || "ед.";
       }
     }
 
@@ -185,6 +219,7 @@ class PDFGenerator {
       END_DATE: data.END_DATE || "",
       lot_description: data.LOT_DESCRIPTION || "",
       lot_count: lotCount,
+      lot_unit: lotUnit,
       FREE_DESCRIPTION: data.FREE_DESCRIPTION || "",
       unit_price: unitPrice,
       total_amount: totalAmount,
@@ -198,6 +233,7 @@ class PDFGenerator {
       // Второй лот
       lot_description_2: data.LOT_DESCRIPTION_2 || "",
       lot_count_2: lotCount2,
+      lot_unit_2: lotUnit2,
       unit_price_2: unitPrice2,
       total_amount_2: totalAmount2,
       lot_number_2: lotNumber2,
@@ -225,14 +261,16 @@ class PDFGenerator {
   formatLotCount(lotCount, customUnit) {
     if (!lotCount) return "";
 
+    const quantity = this.extractQuantity(lotCount);
+
     // Если указана кастомная единица, используем её
     if (customUnit && customUnit.trim() !== "") {
-      const quantity = this.extractQuantity(lotCount);
-      return quantity > 0 ? `${quantity} ${customUnit}` : lotCount;
+      return `${quantity} ${customUnit}`;
     }
 
-    // Иначе возвращаем исходную строку с единицей из парсинга
-    return lotCount;
+    // Иначе извлекаем единицу из исходной строки
+    const unit = this.extractUnit(lotCount);
+    return `${quantity} ${unit}`;
   }
 
   async generatePDF(data, url = "") {
@@ -377,7 +415,16 @@ class PDFGenerator {
       // 5. Генерируем PDF с обновленными данными
       const result = await this.generatePDF(requestSpecificData, url);
 
-      return result;
+      // 6. Добавляем дополнительные данные для отправки в Telegram
+      const extraData = {
+        companyShortName: data.COMPANY_NAME || "",
+        proposalEndDate: data.PROPOSAL_END_DATE || "",
+      };
+
+      return {
+        ...result,
+        ...extraData,
+      };
     } catch (error) {
       console.error("Ошибка при генерации PDF из URL:", error);
       throw error;
