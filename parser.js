@@ -879,17 +879,27 @@ class GoszakupkiParser {
         if (lotCountElement) {
           const countText = lotCountElement.textContent.trim();
 
-          // Простое правило: первое число в тексте = количество
-          // Это работает для всех форматов:
-          // 1. "1 условная единица(усл. ед.), 2 243.00 BYN" → количество 1
-          // 2. "1 единица(ед.), 22 581.36 BYN" → количество 1
-          // 3. "12 месяц(мес), 9 576.00 BYN" → количество 12
-          // 4. "50 шт., 100.00 BYN" → количество 50
-
           const numbers = countText.match(/\d+/g);
 
           if (numbers && numbers.length > 0) {
-            lotCount = `${numbers[0]} ед.`;
+            const t = countText.toLowerCase();
+            const detectUnit = (s) => {
+              if (s.includes("м²")) return "м²";
+              if (s.includes("м³")) return "м³";
+              if (s.includes("пог.м") || s.includes("п/м") || s.includes("пог. м")) return "пог.м";
+              if (s.includes("месяц") || s.includes("мес")) return "мес.";
+              if (s.includes("шт")) return "шт.";
+              if (s.includes("услуга")) return "услуга";
+              if (s.includes("комплект") || s.includes("ком.")) return "комплект";
+              if (/\bкг\b/.test(s)) return "кг";
+              if (/\bл\b/.test(s)) return "л";
+              if (/\bм\b/.test(s) && !s.includes("мес")) return "м";
+              if (s.includes("усл") && s.includes("ед")) return "ед.";
+              if (s.includes("ед")) return "ед.";
+              return "ед.";
+            };
+            const unit = detectUnit(t);
+            lotCount = `${numbers[0]} ${unit}`;
           } else {
             lotCount = countText;
           }
@@ -910,11 +920,27 @@ class GoszakupkiParser {
           if (lotCountElement2) {
             const countText2 = lotCountElement2.textContent.trim();
 
-            // Та же простая логика для второго лота
             const numbers2 = countText2.match(/\d+/g);
 
             if (numbers2 && numbers2.length > 0) {
-              lotCount2 = `${numbers2[0]} ед.`;
+              const t2 = countText2.toLowerCase();
+              const detectUnit2 = (s) => {
+                if (s.includes("м²")) return "м²";
+                if (s.includes("м³")) return "м³";
+                if (s.includes("пог.м") || s.includes("п/м") || s.includes("пог. м")) return "пог.м";
+                if (s.includes("месяц") || s.includes("мес")) return "мес.";
+                if (s.includes("шт")) return "шт.";
+                if (s.includes("услуга")) return "услуга";
+                if (s.includes("комплект") || s.includes("ком.")) return "комплект";
+                if (/\bкг\b/.test(s)) return "кг";
+                if (/\bл\b/.test(s)) return "л";
+                if (/\bм\b/.test(s) && !s.includes("мес")) return "м";
+                if (s.includes("усл") && s.includes("ед")) return "ед.";
+                if (s.includes("ед")) return "ед.";
+                return "ед.";
+              };
+              const unit2 = detectUnit2(t2);
+              lotCount2 = `${numbers2[0]} ${unit2}`;
             } else {
               lotCount2 = countText2;
             }

@@ -54,13 +54,54 @@ class PDFGenerator {
   }
 
   imageToBase64(filename) {
+    const resolveToDataUri = (fullPath) => {
+      if (fs.existsSync(fullPath)) {
+        const buffer = fs.readFileSync(fullPath);
+        const ext = path.extname(fullPath).toLowerCase().slice(1);
+        return `data:image/${ext};base64,${buffer.toString("base64")}`;
+      }
+      return null;
+    };
     try {
-      const imagePath = path.join(this.imagesPath, filename);
-      const imageBuffer = fs.readFileSync(imagePath);
-      const ext = path.extname(filename).toLowerCase().slice(1);
-      return `data:image/${ext};base64,${imageBuffer.toString("base64")}`;
+      const initialPath = path.join(this.imagesPath, filename);
+      let dataUri = resolveToDataUri(initialPath);
+      if (dataUri) return dataUri;
+
+      const ext = path.extname(filename).toLowerCase();
+      const base = path.basename(filename, ext);
+
+      const candidates = [];
+      if (ext === ".png") {
+        candidates.push(
+          path.join(this.imagesPath, `${base}.jpg`),
+          path.join(this.imagesPath, `${base}.jpeg`),
+        );
+      } else if (ext === ".jpg" || ext === ".jpeg") {
+        candidates.push(path.join(this.imagesPath, `${base}.png`));
+      } else {
+        candidates.push(
+          path.join(this.imagesPath, `${base}.png`),
+          path.join(this.imagesPath, `${base}.jpg`),
+          path.join(this.imagesPath, `${base}.jpeg`),
+        );
+      }
+
+      for (const candidate of candidates) {
+        dataUri = resolveToDataUri(candidate);
+        if (dataUri) {
+          console.log(
+            `Использовано альтернативное изображение для ${filename}: ${path.basename(candidate)}`,
+          );
+          return dataUri;
+        }
+      }
+
+      console.error(
+        `Изображение ${filename} не найдено ни в одном из поддерживаемых форматов (.png/.jpg/.jpeg)`,
+      );
+      return "";
     } catch (error) {
-      console.error(`Ошибка при чтении изображения ${filename}:`, error);
+      console.error(`Ошибка при обработке изображения ${filename}:`, error);
       return "";
     }
   }
@@ -306,7 +347,8 @@ class PDFGenerator {
       console.log(
         "Внимание: Глобальный браузер не найден. Создается временный экземпляр.",
       );
-      browserToUse = await puppeteer.launch({ headless: "new" });
+      const headlessConfig = process.env.HEADLESS === "false" ? false : "new";
+      browserToUse = await puppeteer.launch({ headless: headlessConfig });
       shouldCloseBrowser = true;
     }
 
@@ -421,7 +463,7 @@ class PDFGenerator {
       // 6. Добавляем дополнительные данные для отправки в Telegram
       const extraData = {
         companyShortName: data.COMPANY_NAME || "",
-        proposalEndDate: data.PROPOSAL_END_DATE || "",
+        proposalEndDate: data.END_DATE || "",
       };
 
       return {

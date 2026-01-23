@@ -15,8 +15,9 @@ let browserInstance = null;
 // Инициализация браузера при запуске сервера
 async function initializeBrowser() {
   try {
+    const headlessConfig = process.env.HEADLESS === "false" ? false : "new";
     browserInstance = await puppeteer.launch({
-      headless: "new",
+      headless: headlessConfig,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",

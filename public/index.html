@@ -410,7 +410,6 @@
                                 </option>
                                 <option value="шт.">шт.</option>
                                 <option value="мес.">мес.</option>
-                                <option value="услуга">услуга</option>
                                 <option value="комплект">комплект</option>
                                 <option value="услуга">услуга</option>
                                 <option value="п/м">п/м</option>
@@ -465,7 +464,6 @@
                                 </option>
                                 <option value="шт.">шт.</option>
                                 <option value="мес.">мес.</option>
-                                <option value="услуга">услуга</option>
                                 <option value="комплект">комплект</option>
                                 <option value="услуга">услуга</option>
                                 <option value="п/м">п/м</option>
@@ -675,7 +673,12 @@
                         const data = await response.json();
 
                         if (data.success) {
-                            showSuccess(data.fileName);
+                            showSuccess(
+                                data.fileName,
+                                data.companyShortName || "",
+                                data.proposalEndDate || "",
+                                url,
+                            );
                         } else {
                             showError(
                                 data.message ||
@@ -693,9 +696,9 @@
                     }
                 });
 
-            function showSuccess(fileName) {
+            function showSuccess(fileName, companyShortName, proposalEndDate, sourceUrl) {
                 const result = document.getElementById("result");
-                const url = document.getElementById("url").value.trim();
+                const url = sourceUrl || document.getElementById("url").value.trim();
                 const chatId = document
                     .getElementById("telegramChatId")
                     .value.trim();
@@ -704,7 +707,7 @@
 
                 // Кнопка Telegram всегда отображается
                 const telegramButtonHtml = `
-                    <button type="button" class="telegram-btn" id="sendToTelegramBtn" onclick="sendToTelegram('${fileName}', '${url}', '${chatId}')">
+                    <button type="button" class="telegram-btn" id="sendToTelegramBtn" onclick="sendToTelegram('${fileName}', '${url}', '${chatId}', '${companyShortName}', '${proposalEndDate}')">
                         📤 Отправить в Telegram
                     </button>
                 `;
@@ -739,7 +742,7 @@
                 });
 
             // Функция отправки в Telegram
-            async function sendToTelegram(fileName, url, chatId) {
+            async function sendToTelegram(fileName, url, chatId, companyShortName = "", proposalEndDate = "") {
                 const btn = document.getElementById("sendToTelegramBtn");
                 const originalText = btn.innerHTML;
 
@@ -757,6 +760,8 @@
                             fileName: fileName,
                             url: url,
                             caption: "",
+                            companyShortName: companyShortName || undefined,
+                            proposalEndDate: proposalEndDate || undefined,
                         }),
                     });
 
