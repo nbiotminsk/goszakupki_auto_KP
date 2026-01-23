@@ -310,9 +310,10 @@ class PDFGenerator {
       shouldCloseBrowser = true;
     }
 
+    let page;
     try {
       console.log("Создание новой страницы для генерации PDF...");
-      const page = await browserToUse.newPage();
+      page = await browserToUse.newPage();
 
       await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
@@ -336,7 +337,9 @@ class PDFGenerator {
       throw new Error(`Не удалось сгенерировать PDF: ${error.message}`);
     } finally {
       try {
-        await page.close();
+        if (typeof page !== "undefined" && page) {
+          await page.close();
+        }
         console.log("Страница для PDF успешно закрыта.");
       } catch (e) {
         console.error("Ошибка при закрытии страницы:", e);
