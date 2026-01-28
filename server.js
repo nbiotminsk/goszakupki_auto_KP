@@ -198,6 +198,7 @@ app.post("/api/generate-manual", async (req, res) => {
       customerName,
       customerUnp,
       customerAddress,
+      skipUnpApi,
       // Данные лотов
       includeLot1,
       includeLot2,
@@ -302,7 +303,8 @@ app.post("/api/generate-manual", async (req, res) => {
 
     // Если указан УНП, пытаемся получить данные из API
     let apiData = null;
-    if (customerUnp && customerUnp.trim() !== "") {
+    const disableUnpApiGlobal = process.env.API_UNP_DISABLE === "true";
+    if (!disableUnpApiGlobal && !skipUnpApi && customerUnp && customerUnp.trim() !== "") {
       const GoszakupkiParser = require("./parser");
       const goszakupkiParser = new GoszakupkiParser(browserInstance);
       apiData = await goszakupkiParser.getCompanyDataFromAPI(customerUnp);
@@ -614,16 +616,46 @@ async function startServer() {
     // Инициализируем отправщик Telegram
     telegramSender = new TelegramSender();
 
-    // Запускаем сервер
-    app.listen(PORT, () => {
-      console.log(`🚀 Сервер запущен на порту ${PORT}`);
-      console.log(
-        `📄 Генератор коммерческих предложений доступен по адресу: http://localhost:${PORT}`,
-      );
-      console.log(
-        `📁 Сгенерированные файлы сохраняются в: ${path.join(__dirname, "generated")}`,
-      );
-    });
+    if (!process.env.TELEGRAM_CHAT_ID) {
+      console.warn("⚠️ TELEGRAM_CHAT_ID не настроен. Укажите Chat ID в .env или введите его на клиенте при отправке.");
+    }
+
+    // Запускаем сервер с автофолбэком порта
+    const preferredPort = parseInt(PORT, 10);
+    const maxAttempts = parseInt(process.env.PORT_FALLBACK_ATTEMPTS || "5", 10);
+    let selectedPort = preferredPort;
+
+    for (let i = 0; i <= maxAttempts; i++) {
+      selectedPort = preferredPort + i;
+      try {
+        await new Promise((resolve, reject) => {
+          const serverInstance = app.listen(selectedPort, () => resolve());
+          serverInstance.on("error", (err) => {
+            if (err && err.code === "EADDRINUSE") {
+              console.warn(`⚠️ Порт ${selectedPort} занят, пробуем порт ${selectedPort + 1}...`);
+              reject(err);
+            } else {
+              reject(err);
+            }
+          });
+        });
+
+        console.log(`🚀 Сервер запущен на порту ${selectedPort}`);
+        console.log(
+          `📄 Генератор коммерческих предложений доступен по адресу: http://localhost:${selectedPort}`,
+        );
+        console.log(
+          `📁 Сгенерированные файлы сохраняются в: ${path.join(__dirname, "generated")}`,
+        );
+        break;
+      } catch (err) {
+        if (i === maxAttempts) {
+          throw new Error(
+            `Не удалось запустить сервер: все порты в диапазоне ${preferredPort}-${preferredPort + maxAttempts} заняты`,
+          );
+        }
+      }
+    }
   } catch (error) {
     console.error("❌ Ошибка при запуске сервера:", error);
     process.exit(1);

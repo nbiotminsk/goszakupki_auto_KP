@@ -731,6 +731,10 @@
                             Введите 9 цифр УНП для автоматического получения
                             данных из реестра
                         </p>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="skipUnpApi" name="skipUnpApi" />
+                            <label for="skipUnpApi">Не запрашивать данные по УНП (быстрее)</label>
+                        </div>
                     </div>
                     <div id="apiResult" class="api-result">
                         <h4>✓ Данные получены из реестра:</h4>
@@ -1391,6 +1395,11 @@
             document
                 .getElementById("customerUnp")
                 .addEventListener("input", function () {
+                    const skip = document.getElementById("skipUnpApi")?.checked;
+                    if (skip) {
+                        document.getElementById("apiResult").classList.remove("show");
+                        return;
+                    }
                     clearTimeout(unpDebounceTimer);
                     const unp = this.value.replace(/\D/g, "");
                     if (unp.length === 9) {
@@ -1405,6 +1414,10 @@
                     }
                 });
             async function fetchCompanyData(unp) {
+                const skip = document.getElementById("skipUnpApi")?.checked;
+                if (skip) {
+                    return;
+                }
                 try {
                     const response = await fetch("/api/company/" + unp);
                     const data = await response.json();
@@ -1457,6 +1470,8 @@
                             customerAddress:
                                 document.getElementById("customerAddress")
                                     .value,
+                            skipUnpApi:
+                                document.getElementById("skipUnpApi")?.checked || false,
                             includeLot1:
                                 document.getElementById("includeLot1").checked,
                             includeLot2:

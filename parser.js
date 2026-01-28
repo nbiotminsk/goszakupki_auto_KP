@@ -1,5 +1,6 @@
 const puppeteer = require("puppeteer");
 const https = require("https");
+const zlib = require("zlib");
 
 class GoszakupkiParser {
   constructor(browserInstance = null) {
@@ -13,78 +14,142 @@ class GoszakupkiParser {
 
   // Функция для получения данных о компании через API налоговой службы
   async getCompanyDataFromAPI(unp) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!unp || unp.trim() === "") {
         resolve(null);
         return;
       }
-
-      // Очищаем УНП от лишних символов
       const cleanUnp = unp.replace(/[^\d]/g, "");
-
       if (cleanUnp.length !== 9) {
         console.log(`Некорректный УНП: ${unp} (очищенный: ${cleanUnp})`);
         resolve(null);
         return;
       }
-
-      const url = `https://grp.nalog.gov.by/api/grp-public/data?unp=${cleanUnp}&charset=UTF-8&type=json`;
-
-      console.log(`Запрос данных о компании по УНП ${cleanUnp}...`);
-
-      const request = https.get(
-        url,
-        {
-          rejectUnauthorized: false, // Отключаем проверку сертификата для обхода возможных проблем с SSL
-        },
-        (response) => {
-          let data = "";
-
-          response.on("data", (chunk) => {
-            data += chunk;
-          });
-
-          response.on("end", () => {
-            try {
-              const jsonData = JSON.parse(data);
-              if (jsonData.row && jsonData.row.vunp) {
-                console.log(
-                  `Получены данные для УНП ${cleanUnp}: ${jsonData.row.vnaimp}`,
-                );
-                resolve({
-                  unp: jsonData.row.vunp,
-                  fullName: jsonData.row.vnaimp,
-                  shortName: jsonData.row.vnaimk,
-                  address: jsonData.row.vpadres,
-                  registrationDate: jsonData.row.dreg,
-                  taxOfficeCode: jsonData.row.nmns,
-                  taxOfficeName: jsonData.row.vmns,
-                  statusCode: jsonData.row.ckodsost,
-                  statusName: jsonData.row.vkods,
-                  statusChangeDate: jsonData.row.dlikv,
-                });
-              } else {
-                console.log(`Данные для УНП ${cleanUnp} не найдены`);
-                resolve(null);
-              }
-            } catch (error) {
-              console.error(`Ошибка парсинга JSON для УНП ${cleanUnp}:`, error);
-              resolve(null);
-            }
-          });
-        },
+      const urlObj = new URL(
+        `https://grp.nalog.gov.by/api/grp-public/data?unp=${cleanUnp}&charset=UTF-8&type=json`,
       );
-
-      request.on("error", (error) => {
-        console.error(`Ошибка запроса к API для УНП ${cleanUnp}:`, error);
-        resolve(null);
+      const agent = new https.Agent({
+        keepAlive: true,
+        keepAliveMsecs: 10000,
+        maxSockets: 10,
+        rejectUnauthorized: false,
       });
-
-      request.setTimeout(5000, () => {
-        request.destroy();
-        console.error(`Таймаут запроса к API для УНП ${cleanUnp}`);
-        resolve(null);
-      });
+      const maxAttempts = parseInt(process.env.API_UNP_MAX_ATTEMPTS || "5", 10);
+      const baseDelayMs = parseInt(process.env.API_UNP_BASE_DELAY_MS || "1000", 10);
+      const attemptDelay = (n) => {
+        const jitter = Math.floor(Math.random() * baseDelayMs);
+        const exp = baseDelayMs * Math.pow(2, n - 1);
+        return Math.min(10000, exp + jitter);
+      };
+      const attempt = (n) => {
+        console.log(
+          `Запрос данных о компании по УНП ${cleanUnp}, попытка ${n}/${maxAttempts}`,
+        );
+        let timedOut = false;
+        const req = https.request(
+          {
+            protocol: urlObj.protocol,
+            hostname: urlObj.hostname,
+            port: urlObj.port || 443,
+            path: urlObj.pathname + urlObj.search,
+            method: "GET",
+            agent,
+            rejectUnauthorized: false,
+            headers: {
+              Accept: "application/json",
+              "Accept-Encoding": "gzip, deflate",
+              Connection: "keep-alive",
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            },
+          },
+          (res) => {
+            const statusCode = res.statusCode || 0;
+            const encoding = (res.headers["content-encoding"] || "").toLowerCase();
+            let stream = res;
+            if (encoding === "gzip") {
+              stream = res.pipe(zlib.createGunzip());
+            } else if (encoding === "deflate") {
+              stream = res.pipe(zlib.createInflate());
+            }
+            let body = "";
+            stream.on("data", (chunk) => {
+              body += chunk;
+            });
+            stream.on("end", () => {
+              if (timedOut) return;
+              if (statusCode >= 200 && statusCode < 300) {
+                try {
+                  const jsonData = JSON.parse(body);
+                  if (jsonData.row && jsonData.row.vunp) {
+                    console.log(
+                      `Получены данные для УНП ${cleanUnp}: ${jsonData.row.vnaimp}`,
+                    );
+                    resolve({
+                      unp: jsonData.row.vunp,
+                      fullName: jsonData.row.vnaimp,
+                      shortName: jsonData.row.vnaimk,
+                      address: jsonData.row.vpadres,
+                      registrationDate: jsonData.row.dreg,
+                      taxOfficeCode: jsonData.row.nmns,
+                      taxOfficeName: jsonData.row.vmns,
+                      statusCode: jsonData.row.ckodsost,
+                      statusName: jsonData.row.vkods,
+                      statusChangeDate: jsonData.row.dlikv,
+                    });
+                  } else {
+                    console.log(`Данные для УНП ${cleanUnp} не найдены`);
+                    resolve(null);
+                  }
+                } catch (e) {
+                  console.error(
+                    `Ошибка парсинга JSON для УНП ${cleanUnp}:`,
+                    e,
+                  );
+                  resolve(null);
+                }
+              } else {
+                console.error(
+                  `HTTP ${statusCode} при запросе УНП ${cleanUnp}`,
+                );
+                if (n < maxAttempts) {
+                  const d = attemptDelay(n);
+                  console.log(`Повтор через ${d / 1000}с`);
+                  setTimeout(() => attempt(n + 1), d);
+                } else {
+                  resolve(null);
+                }
+              }
+            });
+          },
+        );
+        req.on("error", (error) => {
+          const code = error.code || "UNKNOWN";
+          const msg = error.message || String(error);
+          const isTransient =
+            ["ECONNRESET", "EPIPE", "ETIMEDOUT"].includes(code) ||
+            /socket hang up/i.test(msg) ||
+            /timeout/i.test(msg);
+          console.error(
+            `Ошибка запроса к API для УНП ${cleanUnp}: code=${code}, msg=${msg}`,
+          );
+          if (n < maxAttempts && isTransient) {
+            const d = attemptDelay(n);
+            console.log(`Повтор через ${d / 1000}с`);
+            setTimeout(() => attempt(n + 1), d);
+          } else {
+            resolve(null);
+          }
+        });
+        const timeoutMs = parseInt(process.env.API_UNP_TIMEOUT_MS || "20000", 10);
+        req.setTimeout(timeoutMs, () => {
+          timedOut = true;
+          console.error(`Таймаут запроса к API для УНП ${cleanUnp}`);
+          req.destroy(new Error("Request timeout"));
+        });
+        req.end();
+      };
+      attempt(1);
     });
   }
 

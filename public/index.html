@@ -756,7 +756,7 @@
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                            chatId: chatId,
+                            chatId: chatId || undefined,
                             fileName: fileName,
                             url: url,
                             caption: "",
@@ -776,7 +776,13 @@
                             btn.disabled = false;
                         }, 3000);
                     } else {
-                        throw new Error(data.message || "Не удалось отправить");
+                        const msg = data.message || "Не удалось отправить";
+                        if (msg.includes("Необходимо указать Chat ID")) {
+                            showError("Необходимо указать Chat ID: заполните поле 'Telegram Chat ID' и повторите отправку.");
+                            const input = document.getElementById("telegramChatId");
+                            if (input) input.focus();
+                        }
+                        throw new Error(msg);
                     }
                 } catch (error) {
                     btn.innerHTML = "❌ Ошибка";
