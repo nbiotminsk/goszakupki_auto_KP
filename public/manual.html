@@ -528,11 +528,20 @@
                 margin-top: 15px;
             }
 
+            .catalog-table-wrapper {
+                overflow-x: auto;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                background: #fff;
+                max-height: 52vh;
+            }
+
             .catalog-table th,
             .catalog-table td {
                 border: 1px solid #e0e0e0;
                 padding: 12px;
                 text-align: left;
+                vertical-align: top;
             }
 
             .catalog-table th {
@@ -547,7 +556,8 @@
                 background: #f8f9fa;
             }
 
-            .catalog-table input {
+            .catalog-table input[type="text"],
+            .catalog-table input[type="number"] {
                 width: 100%;
                 padding: 8px;
                 border: 1px solid #e0e0e0;
@@ -568,6 +578,277 @@
             .catalog-actions button {
                 padding: 5px 10px;
                 font-size: 0.85rem;
+            }
+
+            .catalog-toolbar {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 0 15px;
+                border-bottom: 2px solid #e0e0e0;
+                margin-bottom: 15px;
+            }
+
+            .catalog-filters {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .catalog-filters input,
+            .catalog-filters select,
+            .catalog-filters button {
+                padding: 10px 12px;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                font-size: 0.95rem;
+            }
+
+            .catalog-filters input:focus,
+            .catalog-filters select:focus {
+                outline: none;
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+
+            .catalog-actions-inline {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+
+            .catalog-actions-inline button {
+                padding: 10px 14px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+            }
+
+            .catalog-actions-inline .primary {
+                background: #667eea;
+                color: white;
+            }
+
+            .catalog-actions-inline .secondary {
+                background: #f1f3f5;
+                color: #2c3e50;
+            }
+
+            .catalog-table th.sortable {
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .catalog-table th.sortable::after {
+                content: "⇅";
+                font-size: 0.8rem;
+                margin-left: 6px;
+                opacity: 0.5;
+            }
+
+            .catalog-table th.sortable.sorted-asc::after {
+                content: "↑";
+                opacity: 0.9;
+            }
+
+            .catalog-table th.sortable.sorted-desc::after {
+                content: "↓";
+                opacity: 0.9;
+            }
+
+            .truncate {
+                max-width: 260px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: inline-block;
+                vertical-align: top;
+            }
+
+            .tooltip {
+                position: fixed;
+                z-index: 3000;
+                background: rgba(33, 37, 41, 0.95);
+                color: #fff;
+                padding: 10px 12px;
+                border-radius: 8px;
+                max-width: 420px;
+                max-height: 220px;
+                overflow-y: auto;
+                font-size: 0.9rem;
+                line-height: 1.4;
+                display: none;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+                word-break: break-word;
+            }
+
+            .catalog-row-actions {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+
+            .icon-btn {
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                font-size: 1rem;
+            }
+
+            .bulk-bar {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                align-items: center;
+                padding: 10px 0;
+            }
+
+            .bulk-bar select,
+            .bulk-bar button {
+                padding: 8px 12px;
+                border-radius: 6px;
+                border: 1px solid #e0e0e0;
+            }
+
+            .status-toast {
+                padding: 10px 12px;
+                border-radius: 6px;
+                margin-top: 10px;
+                display: none;
+                font-size: 0.9rem;
+            }
+
+            .status-toast.success {
+                background: #eaf7ee;
+                color: #1e7e34;
+                border: 1px solid #b7ebc6;
+            }
+
+            .status-toast.error {
+                background: #fff3f3;
+                color: #b21f2d;
+                border: 1px solid #f5c6cb;
+            }
+
+            .item-modal {
+                display: none;
+                position: fixed;
+                z-index: 2500;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.55);
+            }
+
+            .item-modal.show {
+                display: block;
+            }
+
+            .item-modal-content {
+                background: #fff;
+                width: 98%;
+                max-width: 1200px;
+                margin: 5% auto;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+            }
+
+            .item-modal-header {
+                padding: 20px 24px;
+                background: linear-gradient(135deg, #4c6ef5 0%, #845ef7 100%);
+                color: white;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .item-modal-body {
+                padding: 20px 24px 24px;
+                display: grid;
+                gap: 16px;
+            }
+
+            .form-grid {
+                display: grid;
+                grid-template-columns: 2fr 1fr 1fr;
+                gap: 14px;
+            }
+
+            .field-group {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .field-group label {
+                font-weight: 600;
+                font-size: 0.95rem;
+                color: #2c3e50;
+            }
+
+            .field-group input,
+            .field-group select,
+            .field-group textarea {
+                padding: 10px 12px;
+                border-radius: 6px;
+                border: 1px solid #e0e0e0;
+                font-size: 0.95rem;
+            }
+
+            .field-group textarea {
+                min-height: 90px;
+                resize: vertical;
+            }
+
+            .field-error {
+                color: #c92a2a;
+                font-size: 0.85rem;
+                min-height: 18px;
+            }
+
+            .image-preview {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .image-preview img {
+                width: 70px;
+                height: 70px;
+                object-fit: cover;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+            }
+
+            .item-modal-footer {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                padding: 0 24px 20px;
+            }
+
+            .item-modal-footer button {
+                padding: 10px 16px;
+                border-radius: 6px;
+                border: none;
+                cursor: pointer;
+                font-weight: 600;
+            }
+
+            .item-modal-footer .primary {
+                background: #4c6ef5;
+                color: white;
+            }
+
+            .item-modal-footer .ghost {
+                background: #f1f3f5;
+                color: #2c3e50;
             }
 
             @media (max-width: 768px) {
@@ -592,6 +873,24 @@
                 .catalog-table td {
                     padding: 8px;
                     font-size: 0.85rem;
+                }
+
+                .form-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .catalog-toolbar {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .catalog-filters {
+                    width: 100%;
+                }
+
+                .catalog-actions-inline {
+                    width: 100%;
+                    justify-content: space-between;
                 }
             }
         </style>
@@ -638,44 +937,42 @@
                     </div>
                 </div>
                 <div class="modal-body">
-                    <div class="catalog-add-form">
-                        <input
-                            type="text"
-                            id="newItemName"
-                            placeholder="Наименование товара/услуги"
-                        />
-                        <input
-                            type="number"
-                            id="newItemPrice"
-                            placeholder="Цена (BYN)"
-                            step="0.01"
-                            min="0"
-                        />
-                        <input
-                            type="text"
-                            id="newItemUnit"
-                            placeholder="Ед. изм."
-                            list="unitOptions"
-                        />
-                        <button
-                            type="button"
-                            class="table-btn add"
-                            onclick="addCatalogItem()"
-                        >
-                            + Добавить
-                        </button>
+                    <div class="catalog-toolbar">
+                        <div class="catalog-filters">
+                            <input type="text" id="filterQuery" placeholder="Поиск по названию">
+                            <select id="filterUnit">
+                                <option value="">Ед. изм.</option>
+                                <option value="шт.">шт.</option>
+                                <option value="усл.">усл.</option>
+                                <option value="ком.">ком.</option>
+                                <option value="мес.">мес.</option>
+                                <option value="кг">кг</option>
+                            </select>
+                            <button type="button" onclick="clearCatalogFilters()">Сбросить</button>
+                        </div>
+                        <div class="catalog-actions-inline">
+                            <button type="button" class="primary" onclick="openItemModal()">+ Добавить товар</button>
+                            <button type="button" class="secondary" onclick="saveCatalogChanges()">Сохранить</button>
+                        </div>
                     </div>
-                    <table class="catalog-table">
-                        <thead>
-                            <tr>
-                                <th>Наименование</th>
-                                <th>Цена (BYN)</th>
-                                <th>Ед. изм.</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody id="catalogTableBody"></tbody>
-                    </table>
+                    <div class="bulk-bar">
+                        <button type="button" onclick="bulkDeleteSelected()">Удалить выбранные</button>
+                    </div>
+                    <div class="catalog-table-wrapper">
+                        <table class="catalog-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+                                    <th class="sortable" data-sort="name" onclick="setCatalogSort('name')">Наименование</th>
+                                    <th class="sortable" data-sort="unit" onclick="setCatalogSort('unit')">Ед. изм.</th>
+                                    <th class="sortable" data-sort="price" onclick="setCatalogSort('price')">Цена (BYN)</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalogTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="catalogToast" class="status-toast"></div>
                     <div
                         style="
                             margin-top: 20px;
@@ -696,6 +993,42 @@
                 </div>
             </div>
         </div>
+        <div id="itemModal" class="item-modal">
+            <div class="item-modal-content">
+                <div class="item-modal-header">
+                    <h3 id="itemModalTitle">Товар</h3>
+                    <button class="modal-close" onclick="closeItemModal()">×</button>
+                </div>
+                <div class="item-modal-body">
+                    <div class="form-grid">
+                        <div class="field-group" style="grid-column: 1 / -1;">
+                            <label for="formName">Наименование</label>
+                            <textarea id="formName" style="min-height: 120px; resize: vertical;"></textarea>
+                            <div class="field-error" id="errName"></div>
+                        </div>
+                        <div class="field-group">
+                            <label for="formPrice">Цена (BYN)</label>
+                            <input type="number" id="formPrice" step="0.01" min="0">
+                            <div class="field-error" id="errPrice"></div>
+                        </div>
+                        <div class="field-group">
+                            <label for="formUnit">Ед. изм.</label>
+                            <input type="text" id="formUnit" list="unitOptions">
+                            <div class="field-error" id="errUnit"></div>
+                        </div>
+                    </div>
+                    <div class="field-group image-preview">
+                        <input type="file" id="formImage" accept="image/*">
+                        <img id="formImagePreview" alt="Предпросмотр" style="display:none">
+                    </div>
+                </div>
+                <div class="item-modal-footer">
+                    <button class="ghost" onclick="closeItemModal()">Отмена</button>
+                    <button class="primary" onclick="saveItemFromModal()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+        <div id="catalogTooltip" class="tooltip"></div>
 
         <!-- Кнопка открытия справочника (скрыта, теперь есть кнопки в таблицах) -->
         <button
@@ -1205,10 +1538,65 @@
 
             // Функции для работы со справочником
             let catalogData = [];
+            let catalogSort = { field: "", direction: "asc" };
+            let catalogFilters = {
+                query: "",
+                unit: "",
+            };
+            let catalogSelected = new Set();
+            let catalogViewIndices = [];
+            let editingIndex = null;
+            let toastTimer;
 
             // Загрузка справочника при загрузке страницы
             document.addEventListener("DOMContentLoaded", function () {
                 loadCatalog();
+                const filterQuery = document.getElementById("filterQuery");
+                const filterUnit = document.getElementById("filterUnit");
+                if (filterQuery) {
+                    filterQuery.addEventListener("input", handleCatalogFilters);
+                }
+                if (filterUnit) {
+                    filterUnit.addEventListener("change", handleCatalogFilters);
+                }
+                const formName = document.getElementById("formName");
+                const formPrice = document.getElementById("formPrice");
+                const formUnit = document.getElementById("formUnit");
+                const formImage = document.getElementById("formImage");
+                if (formName) {
+                    formName.addEventListener("input", () =>
+                        validateItemField("name"),
+                    );
+                }
+                if (formPrice) {
+                    formPrice.addEventListener("input", () =>
+                        validateItemField("price"),
+                    );
+                }
+                if (formUnit) {
+                    formUnit.addEventListener("input", () =>
+                        validateItemField("unit"),
+                    );
+                }
+                if (formImage) {
+                    formImage.addEventListener("change", handleImageChange);
+                }
+                const catalogTableBody =
+                    document.getElementById("catalogTableBody");
+                if (catalogTableBody) {
+                    catalogTableBody.addEventListener(
+                        "mouseover",
+                        handleTooltipHover,
+                    );
+                    catalogTableBody.addEventListener(
+                        "mousemove",
+                        handleTooltipMove,
+                    );
+                    catalogTableBody.addEventListener(
+                        "mouseout",
+                        handleTooltipLeave,
+                    );
+                }
             });
 
             function loadCatalog() {
@@ -1233,16 +1621,25 @@
                     .then((response) => response.json())
                     .then((data) => {
                         if (data.success) {
-                            alert("Справочник успешно сохранен!");
+                            showCatalogToast(
+                                "Справочник успешно сохранен",
+                                "success",
+                            );
                             updateCatalogDatalist();
                             updateCatalogTable();
                         } else {
-                            alert("Ошибка сохранения: " + data.message);
+                            showCatalogToast(
+                                "Ошибка сохранения: " + data.message,
+                                "error",
+                            );
                         }
                     })
                     .catch((error) => {
                         console.error("Ошибка сохранения справочника:", error);
-                        alert("Произошла ошибка при сохранении");
+                        showCatalogToast(
+                            "Произошла ошибка при сохранении",
+                            "error",
+                        );
                     });
             }
 
@@ -1251,9 +1648,9 @@
                 datalist.innerHTML = "";
                 catalogData.forEach((item) => {
                     const option = document.createElement("option");
-                    option.value = item.name;
-                    option.setAttribute("data-price", item.price);
-                    option.setAttribute("data-unit", item.unit);
+                    option.value = item.name || "";
+                    option.setAttribute("data-price", item.price || "");
+                    option.setAttribute("data-unit", item.unit || "");
                     datalist.appendChild(option);
                 });
             }
@@ -1261,19 +1658,75 @@
             function updateCatalogTable() {
                 const tbody = document.getElementById("catalogTableBody");
                 tbody.innerHTML = "";
-                catalogData.forEach((item, index) => {
+                const normalizedQuery = normalizeValue(catalogFilters.query);
+                let items = catalogData.map((item, index) => ({
+                    item,
+                    index,
+                }));
+                if (normalizedQuery) {
+                    items = items.filter(({ item }) => {
+                        const name = normalizeValue(item.name);
+                        return name.includes(normalizedQuery);
+                    });
+                }
+                if (catalogFilters.unit) {
+                    items = items.filter(
+                        ({ item }) =>
+                            normalizeValue(item.unit) ===
+                            normalizeValue(catalogFilters.unit),
+                    );
+                }
+                if (catalogSort.field) {
+                    items.sort((a, b) => {
+                        const field = catalogSort.field;
+                        const valueA = a.item[field] ?? "";
+                        const valueB = b.item[field] ?? "";
+                        if (field === "price") {
+                            const numA = parseFloat(valueA);
+                            const numB = parseFloat(valueB);
+                            const safeA = isNaN(numA) ? 0 : numA;
+                            const safeB = isNaN(numB) ? 0 : numB;
+                            return catalogSort.direction === "asc"
+                                ? safeA - safeB
+                                : safeB - safeA;
+                        }
+                        const compareResult = String(valueA).localeCompare(
+                            String(valueB),
+                            "ru",
+                            { sensitivity: "base" },
+                        );
+                        return catalogSort.direction === "asc"
+                            ? compareResult
+                            : -compareResult;
+                    });
+                }
+                catalogViewIndices = items.map((item) => item.index);
+                items.forEach(({ item, index }) => {
                     const row = document.createElement("tr");
+                    const nameText = item.name || "";
+                    const unitText = item.unit || "";
+                    const priceText = formatPrice(item.price);
                     row.innerHTML = `
-                        <td><input type="text" value="${item.name}" onchange="updateCatalogItem(${index}, 'name', this.value)"></td>
-                        <td><input type="number" value="${item.price}" step="0.01" min="0" onchange="updateCatalogItem(${index}, 'price', this.value)"></td>
-                        <td><input type="text" value="${item.unit}" list="unitOptions" onchange="updateCatalogItem(${index}, 'unit', this.value)"></td>
-                        <td class="catalog-actions">
-                            <button class="table-btn remove" onclick="deleteCatalogItem(${index})">Удалить</button>
+                        <td><input type="checkbox" ${
+                            catalogSelected.has(index) ? "checked" : ""
+                        } onclick="toggleSelectItem(${index}, this.checked)"></td>
+                        <td><span class="truncate" data-tooltip="${escapeHtml(
+                            nameText,
+                        )}">${escapeHtml(nameText || "—")}</span></td>
+                        <td>${escapeHtml(unitText || "—")}</td>
+                        <td>${escapeHtml(priceText || "—")}</td>
+                        <td>
+                            <div class="catalog-row-actions">
+                                <button class="icon-btn" onclick="openItemModal(${index})" title="Редактировать">✏️</button>
+                                <button class="icon-btn" onclick="deleteCatalogItem(${index})" title="Удалить">🗑️</button>
+                            </div>
                         </td>
                     `;
                     tbody.appendChild(row);
                 });
                 updateCatalogCount();
+                updateSortIndicators();
+                updateSelectAllState();
             }
 
             function openCatalogModal() {
@@ -1287,64 +1740,14 @@
                     .classList.remove("show");
             }
 
-            function addCatalogItem() {
-                const nameInput = document.getElementById("newItemName");
-                const priceInput = document.getElementById("newItemPrice");
-                const unitInput = document.getElementById("newItemUnit");
+            function addCatalogItem() {}
 
-                const name = nameInput.value.trim();
-                const price = parseFloat(priceInput.value);
-                const unit = unitInput.value.trim();
-
-                if (!name) {
-                    alert("Введите наименование товара/услуги");
-                    return;
-                }
-
-                if (isNaN(price) || price < 0) {
-                    alert("Введите корректную цену");
-                    return;
-                }
-
-                if (!unit) {
-                    alert("Введите единицу измерения");
-                    return;
-                }
-
-                catalogData.push({
-                    name: name,
-                    price: price.toFixed(2),
-                    unit: unit,
-                });
-
-                // Очищаем поля ввода
-                nameInput.value = "";
-                priceInput.value = "";
-                unitInput.value = "";
-
-                // Сохраняем изменения
-                saveCatalog();
-            }
-
-            function updateCatalogItem(index, field, value) {
-                if (field === "price") {
-                    const numValue = parseFloat(value);
-                    if (isNaN(numValue) || numValue < 0) {
-                        alert("Введите корректную цену");
-                        updateCatalogTable();
-                        return;
-                    }
-                    catalogData[index][field] = numValue.toFixed(2);
-                } else {
-                    catalogData[index][field] = value.trim();
-                }
-                // Обновляем счетчик товаров
-                updateCatalogCount();
-            }
+            function updateCatalogItem() {}
 
             function deleteCatalogItem(index) {
                 if (confirm("Удалить этот товар из справочника?")) {
                     catalogData.splice(index, 1);
+                    catalogSelected.delete(index);
                     updateCatalogCount();
                     updateCatalogTable();
                     updateCatalogDatalist();
@@ -1359,6 +1762,337 @@
 
             function saveCatalogChanges() {
                 saveCatalog();
+            }
+
+            function handleCatalogFilters() {
+                catalogFilters.query =
+                    document.getElementById("filterQuery")?.value || "";
+                catalogFilters.unit =
+                    document.getElementById("filterUnit")?.value || "";
+                updateCatalogTable();
+            }
+
+            function clearCatalogFilters() {
+                const filterQuery = document.getElementById("filterQuery");
+                const filterUnit = document.getElementById("filterUnit");
+                if (filterQuery) filterQuery.value = "";
+                if (filterUnit) filterUnit.value = "";
+                catalogFilters = {
+                    query: "",
+                    unit: "",
+                };
+                updateCatalogTable();
+            }
+
+            function setCatalogSort(field) {
+                if (catalogSort.field === field) {
+                    catalogSort.direction =
+                        catalogSort.direction === "asc" ? "desc" : "asc";
+                } else {
+                    catalogSort.field = field;
+                    catalogSort.direction = "asc";
+                }
+                updateCatalogTable();
+            }
+
+            function updateSortIndicators() {
+                const headers = document.querySelectorAll(
+                    ".catalog-table th.sortable",
+                );
+                headers.forEach((header) => {
+                    header.classList.remove("sorted-asc", "sorted-desc");
+                    if (header.dataset.sort === catalogSort.field) {
+                        header.classList.add(
+                            catalogSort.direction === "asc"
+                                ? "sorted-asc"
+                                : "sorted-desc",
+                        );
+                    }
+                });
+            }
+
+            function toggleSelectItem(index, checked) {
+                if (checked) {
+                    catalogSelected.add(index);
+                } else {
+                    catalogSelected.delete(index);
+                }
+                updateSelectAllState();
+            }
+
+            function toggleSelectAll(checkbox) {
+                if (checkbox.checked) {
+                    catalogViewIndices.forEach((index) =>
+                        catalogSelected.add(index),
+                    );
+                } else {
+                    catalogViewIndices.forEach((index) =>
+                        catalogSelected.delete(index),
+                    );
+                }
+                updateCatalogTable();
+            }
+
+            function updateSelectAllState() {
+                const selectAll = document.getElementById("selectAll");
+                if (!selectAll) return;
+                const allSelected =
+                    catalogViewIndices.length > 0 &&
+                    catalogViewIndices.every((index) =>
+                        catalogSelected.has(index),
+                    );
+                selectAll.checked = allSelected;
+            }
+
+            function bulkDeleteSelected() {
+                if (catalogSelected.size === 0) {
+                    showCatalogToast(
+                        "Нет выбранных товаров для удаления",
+                        "error",
+                    );
+                    return;
+                }
+                if (confirm("Удалить выбранные товары?")) {
+                    catalogData = catalogData.filter(
+                        (_, index) => !catalogSelected.has(index),
+                    );
+                    catalogSelected.clear();
+                    updateCatalogDatalist();
+                    updateCatalogTable();
+                    saveCatalog();
+                    showCatalogToast("Товары удалены", "success");
+                }
+            }
+
+            function bulkApplyCategory() {
+            }
+
+            function bulkApplyBrand() {
+            }
+
+            function openItemModal(index = null) {
+                editingIndex =
+                    index !== null && index !== undefined ? index : null;
+                const item =
+                    editingIndex !== null
+                        ? catalogData[editingIndex]
+                        : {};
+                document.getElementById("itemModalTitle").textContent =
+                    editingIndex !== null ? "Редактирование товара" : "Новый товар";
+                document.getElementById("formName").value = item.name || "";
+                document.getElementById("formPrice").value =
+                    item.price || "";
+                document.getElementById("formUnit").value = item.unit || "";
+                const formImage = document.getElementById("formImage");
+                const imagePreview =
+                    document.getElementById("formImagePreview");
+                formImage.value = "";
+                formImage.dataset.imageData = item.image || "";
+                if (item.image) {
+                    imagePreview.src = item.image;
+                    imagePreview.style.display = "block";
+                } else {
+                    imagePreview.style.display = "none";
+                }
+                clearItemErrors();
+                document.getElementById("itemModal").classList.add("show");
+            }
+
+            function closeItemModal() {
+                document.getElementById("itemModal").classList.remove("show");
+                editingIndex = null;
+            }
+
+            function handleImageChange(event) {
+                const file = event.target.files && event.target.files[0];
+                const imagePreview =
+                    document.getElementById("formImagePreview");
+                if (!file) {
+                    event.target.dataset.imageData = "";
+                    imagePreview.style.display = "none";
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const result = e.target.result;
+                    event.target.dataset.imageData = result;
+                    imagePreview.src = result;
+                    imagePreview.style.display = "block";
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function clearItemErrors() {
+                document.getElementById("errName").textContent = "";
+                document.getElementById("errPrice").textContent = "";
+                document.getElementById("errUnit").textContent = "";
+            }
+
+            function validateItemField(field) {
+                if (field === "name" || !field) {
+                    const nameInput = document.getElementById("formName");
+                    const errName = document.getElementById("errName");
+                    if (!nameInput.value.trim()) {
+                        errName.textContent = "Введите наименование";
+                    } else {
+                        errName.textContent = "";
+                    }
+                }
+                if (field === "price" || !field) {
+                    const priceInput = document.getElementById("formPrice");
+                    const errPrice = document.getElementById("errPrice");
+                    const price = parseFloat(priceInput.value);
+                    if (isNaN(price) || price < 0) {
+                        errPrice.textContent = "Введите корректную цену";
+                    } else {
+                        errPrice.textContent = "";
+                    }
+                }
+                if (field === "unit" || !field) {
+                    const unitInput = document.getElementById("formUnit");
+                    const errUnit = document.getElementById("errUnit");
+                    if (!unitInput.value.trim()) {
+                        errUnit.textContent = "Введите единицу измерения";
+                    } else {
+                        errUnit.textContent = "";
+                    }
+                }
+            }
+
+            function validateItemForm() {
+                validateItemField();
+                const errName = document.getElementById("errName").textContent;
+                const errPrice = document.getElementById("errPrice").textContent;
+                const errUnit = document.getElementById("errUnit").textContent;
+                return !errName && !errPrice && !errUnit;
+            }
+
+            function saveItemFromModal() {
+                if (!validateItemForm()) {
+                    showCatalogToast(
+                        "Проверьте заполнение обязательных полей",
+                        "error",
+                    );
+                    return;
+                }
+                const name = document.getElementById("formName").value.trim();
+                const priceValue = parseFloat(
+                    document.getElementById("formPrice").value,
+                );
+                const unit = document.getElementById("formUnit").value.trim();
+                const imageData =
+                    document.getElementById("formImage").dataset.imageData ||
+                    "";
+                const itemPayload = {
+                    name,
+                    price: isNaN(priceValue) ? "" : priceValue.toFixed(2),
+                    unit,
+                    image: imageData,
+                };
+                if (editingIndex !== null) {
+                    catalogData[editingIndex] = {
+                        ...catalogData[editingIndex],
+                        ...itemPayload,
+                    };
+                } else {
+                    catalogData.push(itemPayload);
+                }
+                updateCatalogDatalist();
+                updateCatalogTable();
+                closeItemModal();
+                showCatalogToast("Товар сохранен", "success");
+            }
+
+            function handleTooltipHover(event) {
+                const target = event.target.closest(".truncate");
+                if (!target) return;
+                const text = target.dataset.tooltip || "";
+                if (!text.trim()) return;
+                showTooltip(text, event);
+            }
+
+            function handleTooltipMove(event) {
+                const tooltip = document.getElementById("catalogTooltip");
+                if (!tooltip || tooltip.style.display !== "block") return;
+                positionTooltip(event);
+            }
+
+            function handleTooltipLeave(event) {
+                if (!event.relatedTarget) {
+                    hideTooltip();
+                    return;
+                }
+                const target = event.relatedTarget.closest(".truncate");
+                if (!target) {
+                    hideTooltip();
+                }
+            }
+
+            function showTooltip(text, event) {
+                const tooltip = document.getElementById("catalogTooltip");
+                if (!tooltip) return;
+                tooltip.textContent = text;
+                tooltip.style.display = "block";
+                positionTooltip(event);
+            }
+
+            function hideTooltip() {
+                const tooltip = document.getElementById("catalogTooltip");
+                if (!tooltip) return;
+                tooltip.style.display = "none";
+            }
+
+            function positionTooltip(event) {
+                const tooltip = document.getElementById("catalogTooltip");
+                if (!tooltip) return;
+                const padding = 12;
+                let x = event.clientX + 12;
+                let y = event.clientY + 12;
+                const rect = tooltip.getBoundingClientRect();
+                const maxX = window.innerWidth - rect.width - padding;
+                const maxY = window.innerHeight - rect.height - padding;
+                if (x > maxX) x = Math.max(padding, maxX);
+                if (y > maxY) y = Math.max(padding, maxY);
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y}px`;
+            }
+
+            function showCatalogToast(message, type) {
+                const toast = document.getElementById("catalogToast");
+                if (!toast) return;
+                toast.textContent = message;
+                toast.classList.remove("success", "error");
+                if (type) {
+                    toast.classList.add(type);
+                }
+                toast.style.display = "block";
+                if (toastTimer) {
+                    clearTimeout(toastTimer);
+                }
+                toastTimer = setTimeout(() => {
+                    toast.style.display = "none";
+                }, 3000);
+            }
+
+            function normalizeValue(value) {
+                return String(value || "").toLowerCase();
+            }
+
+            function formatPrice(value) {
+                const num = parseFloat(value);
+                if (isNaN(num)) {
+                    return "";
+                }
+                return num.toFixed(2);
+            }
+
+            function escapeHtml(value) {
+                return String(value || "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
             }
 
             function onItemNameChange(inputElement) {
