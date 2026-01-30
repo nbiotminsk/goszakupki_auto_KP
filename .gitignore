@@ -3,3 +3,4 @@ generated/
 *.pdf
 nul
 .env
+.DS_Store

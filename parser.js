@@ -1,6 +1,12 @@
 const puppeteer = require("puppeteer");
 const https = require("https");
 const zlib = require("zlib");
+const fs = require("fs");
+const path = require("path");
+
+// Загружаем конфигурацию селекторов из внешнего файла
+const selectorsPath = path.join(__dirname, "selectors.json");
+const SELECTORS = JSON.parse(fs.readFileSync(selectorsPath, "utf8"));
 
 class GoszakupkiParser {
   constructor(browserInstance = null) {
@@ -10,6 +16,7 @@ class GoszakupkiParser {
       );
     }
     this.browser = browserInstance;
+    this.selectors = SELECTORS;
   }
 
   // Функция для получения данных о компании через API налоговой службы
@@ -417,10 +424,19 @@ class GoszakupkiParser {
         );
       }
 
-      const data = await page.evaluate(() => {
+      const data = await page.evaluate((selectors) => {
         const safeExtract = (selector) => {
           const element = document.querySelector(selector);
           return element ? element.textContent.trim() : "";
+        };
+
+        // Вспомогательная функция для извлечения по массиву селекторов (fallback)
+        const safeExtractFirst = (selectorArray) => {
+          for (const selector of selectorArray) {
+            const result = safeExtract(selector);
+            if (result) return result;
+          }
+          return "";
         };
 
         // Определяем тип страницы для применения соответствующих селекторов
@@ -511,7 +527,7 @@ class GoszakupkiParser {
           // Сначала ищем в правильной таблице
           const correctTableTds = Array.from(
             document.querySelectorAll(
-              "#print-area > div:nth-child(3) table td",
+              selectors.common.companyTable,
             ),
           );
           for (const td of correctTableTds) {
@@ -628,7 +644,7 @@ class GoszakupkiParser {
           // Сначала ищем в правильной таблице
           const correctTableTds = Array.from(
             document.querySelectorAll(
-              "#print-area > div:nth-child(3) table td",
+              selectors.common.companyTable,
             ),
           );
           let longestText = "";
@@ -755,7 +771,7 @@ class GoszakupkiParser {
           // Сначала ищем в правильной таблице
           const correctTableTds = Array.from(
             document.querySelectorAll(
-              "#print-area > div:nth-child(3) table td",
+              selectors.common.companyTable,
             ),
           );
           for (const td of correctTableTds) {
@@ -845,32 +861,20 @@ class GoszakupkiParser {
         let companyName, unp, address;
 
         if (isRequestViewPage) {
-          // Используем селектор, указанный пользователем для названия организации
-          companyName = safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(1) > td",
-          );
-          unp = safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(3) > td",
-          );
-          address = safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(2) > td",
-          );
+          // Используем селекторы для request/view страниц
+          companyName = safeExtract(selectors.requestView.companyName);
+          unp = safeExtract(selectors.requestView.unp);
+          address = safeExtract(selectors.requestView.address);
 
           // Очистка названия компании от лишних данных (адрес, УНП и т.д.)
           if (companyName && companyName.includes("\n")) {
             companyName = companyName.split("\n")[0].trim();
           }
         } else {
-          // Для других типов страниц используем стандартные селекторы
-          companyName = safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(1) > td",
-          );
-          unp = safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(3) > td",
-          );
-          address = safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(2) > td",
-          );
+          // Для других типов страниц используем стандартные селекторы (marketing/view)
+          companyName = safeExtract(selectors.marketingView.companyName);
+          unp = safeExtract(selectors.marketingView.unp);
+          address = safeExtract(selectors.marketingView.address);
         }
 
         // Ищем только УНП на странице, название компании и адрес получим из API
@@ -882,65 +886,22 @@ class GoszakupkiParser {
         companyName = "";
         address = "";
 
-        // Если УНП не найден, пробуем старый селектор
+        // Если УНП не найден, пробуем fallback селектор
         if (!unp) {
-          unp = safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(3) > td",
-          );
+          unp = safeExtract(selectors.fallback.unp);
         }
 
         // Название компании и адрес не ищем по старым селекторам, получим из API
 
-        // Извлекаем PLACE, PAYMENT и END_DATE с правильными селекторами
-        const place =
-          safeExtract(
-            "#lot-inf-1 > td:nth-child(3) > ul:nth-child(1) > li:nth-child(2) > span",
-          ) ||
-          safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(4) > td",
-          ) ||
-          safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(4) > td",
-          ) ||
-          safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(5) > td",
-          );
+        // Извлекаем PLACE, PAYMENT и END_DATE с селекторами из конфига
+        const place = safeExtractFirst(selectors.lotInfo.place);
+        const payment = safeExtractFirst(selectors.lotInfo.payment);
+        const endDate = safeExtractFirst(selectors.lotInfo.endDate);
 
-        const payment =
-          safeExtract(
-            "#lot-inf-1 > td:nth-child(3) > ul:nth-child(1) > li:nth-child(4) > span",
-          ) ||
-          safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(5) > td",
-          ) ||
-          safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(5) > td",
-          ) ||
-          safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(6) > td",
-          );
-
-        const endDate =
-          safeExtract(
-            "#lot-inf-1 > td:nth-child(3) > ul:nth-child(1) > li:nth-child(1) > span",
-          ) ||
-          safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(6) > td",
-          ) ||
-          safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(6) > td",
-          ) ||
-          safeExtract(
-            "body > div > div > div:nth-child(4) > table > tbody > tr:nth-child(7) > td",
-          );
-        const lotDescription = safeExtract(
-          "#lotsList tr.lot-row td.lot-description",
-        );
+        const lotDescription = safeExtract(selectors.common.lotDescription);
 
         let lotCount = "";
-        const lotCountElement = document.querySelector(
-          "#lotsList > tbody > tr.lot-row > td.lot-count-price",
-        );
+        const lotCountElement = document.querySelector(selectors.common.lotCountPrice);
         if (lotCountElement) {
           const countText = lotCountElement.textContent.trim();
 
@@ -971,17 +932,13 @@ class GoszakupkiParser {
         }
 
         const hasSecondLot =
-          document.querySelectorAll("#lotsList tr.lot-row").length > 1;
+          document.querySelectorAll(selectors.common.lotsList).length > 1;
         let lotDescription2 = "";
         let lotCount2 = "";
 
         if (hasSecondLot) {
-          lotDescription2 = safeExtract(
-            "#lotsList > tbody > tr:nth-of-type(3) > td.lot-description",
-          );
-          const lotCountElement2 = document.querySelector(
-            "#lotsList > tbody > tr:nth-of-type(3) > td.lot-count-price",
-          );
+          lotDescription2 = safeExtract(selectors.common.secondLotDescription);
+          const lotCountElement2 = document.querySelector(selectors.common.secondLotCountPrice);
           if (lotCountElement2) {
             const countText2 = lotCountElement2.textContent.trim();
 
@@ -1013,39 +970,33 @@ class GoszakupkiParser {
         }
 
         // Добавляем отладочную информацию
-        const allTds = Array.from(document.querySelectorAll("td"));
+        const allTds = Array.from(document.querySelectorAll(selectors.common.allTd));
         const relevantTds = allTds.filter((td) =>
           isRelevantContent(td.textContent.trim()),
         );
         const correctTableTds = Array.from(
-          document.querySelectorAll("#print-area > div:nth-child(3) table td"),
+          document.querySelectorAll(selectors.common.companyTable),
         );
 
         // Определяем источник данных
         const dataSource = {
-          companyName: safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(1) > td",
-          )
+          companyName: safeExtract(selectors.marketingView.companyName)
             ? "specific_table"
             : companyName &&
-                correctTableTds.some(
-                  (td) => td.textContent.trim() === companyName,
-                )
+              correctTableTds.some(
+                (td) => td.textContent.trim() === companyName,
+              )
               ? "correct_table"
               : "general_search",
-          unp: safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(3) > td",
-          )
+          unp: safeExtract(selectors.marketingView.unp)
             ? "specific_table"
             : unp && correctTableTds.some((td) => td.textContent.trim() === unp)
               ? "correct_table"
               : "general_search",
-          address: safeExtract(
-            "#print-area > div:nth-child(3) > table > tbody > tr:nth-child(2) > td",
-          )
+          address: safeExtract(selectors.marketingView.address)
             ? "specific_table"
             : address &&
-                correctTableTds.some((td) => td.textContent.trim() === address)
+              correctTableTds.some((td) => td.textContent.trim() === address)
               ? "correct_table"
               : "general_search",
         };
@@ -1088,7 +1039,7 @@ class GoszakupkiParser {
           DEBUG_INFO: debugInfo,
           DATE: date,
         };
-      });
+      }, this.selectors);
 
       const currentDate = new Date().toLocaleDateString("ru-BY", {
         day: "2-digit",
