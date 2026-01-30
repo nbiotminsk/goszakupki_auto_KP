@@ -343,12 +343,17 @@ class PDFGenerator {
 
     let browserToUse = this.browser;
     let shouldCloseBrowser = false;
-    if (!browserToUse) {
+    
+    // Проверяем, существует ли браузер и подключен ли он
+    if (!browserToUse || !browserToUse.isConnected()) {
       console.log(
-        "Внимание: Глобальный браузер не найден. Создается временный экземпляр.",
+        "Внимание: Глобальный браузер не найден или отключен. Создается временный экземпляр.",
       );
       const headlessConfig = process.env.HEADLESS === "false" ? false : "new";
-      browserToUse = await puppeteer.launch({ headless: headlessConfig });
+      browserToUse = await puppeteer.launch({ 
+        headless: headlessConfig,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"]
+      });
       shouldCloseBrowser = true;
     }
 

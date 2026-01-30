@@ -56,10 +56,32 @@ async function initializeBrowser() {
       ],
     });
     console.log("🌐 Браузер Puppeteer успешно запущен");
+    return true;
   } catch (error) {
     console.error("❌ Ошибка при запуске браузера:", error);
-    process.exit(1);
+    // Не завершаем процесс, чтобы дать возможность повторной попытки
+    return false;
   }
+}
+
+async function ensureBrowser() {
+  if (!browserInstance || !browserInstance.isConnected()) {
+    console.log("⚠️ Браузер отключен или не инициализирован. Попытка перезапуска...");
+    if (browserInstance) {
+      try {
+        await browserInstance.close();
+      } catch (e) {
+        // Игнорируем ошибки при закрытии уже мертвого браузера
+      }
+    }
+    const success = await initializeBrowser();
+    if (success && pdfGenerator) {
+      pdfGenerator.browser = browserInstance;
+      console.log("✅ Ссылка на браузер в генераторе PDF обновлена");
+    }
+    return success;
+  }
+  return true;
 }
 
 // Закрытие браузера при остановке сервера
@@ -100,6 +122,7 @@ app.get("/", (req, res) => {
 // API для генерации PDF
 app.post("/generate", async (req, res) => {
   try {
+    await ensureBrowser();
     const {
       url,
       unitPrice,
@@ -193,6 +216,7 @@ app.post("/generate", async (req, res) => {
 // API для генерации KP с ручным вводом данных (без парсинга страницы)
 app.post("/api/generate-manual", async (req, res) => {
   try {
+    await ensureBrowser();
     const {
       // Данные заказчика
       customerName,
@@ -406,6 +430,7 @@ app.post("/api/save-catalog", async (req, res) => {
 // API для получения данных организации по УНП
 app.get("/api/company/:unp", async (req, res) => {
   try {
+    await ensureBrowser();
     const { unp } = req.params;
 
     if (!unp || unp.trim() === "") {
@@ -608,7 +633,10 @@ app.use((req, res) => {
 async function startServer() {
   try {
     // Сначала инициализируем браузер
-    await initializeBrowser();
+    const browserStarted = await initializeBrowser();
+    if (!browserStarted) {
+      console.warn("⚠️ Браузер не удалось запустить при старте. Будет предпринята попытка при первом запросе.");
+    }
 
     // Затем инициализируем генератор PDF с браузером
     pdfGenerator = new PDFGenerator(browserInstance);
