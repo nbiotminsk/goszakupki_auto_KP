@@ -114,6 +114,45 @@ app.use("/data", express.static(path.join(__dirname, "data")));
 // Раздача сгенерированных файлов
 app.use("/download", express.static(path.join(__dirname, "generated")));
 
+/**
+ * Удаляет старые файлы из указанной директории
+ * @param {string} directory - Путь к директории
+ * @param {number} maxAgeHours - Максимальный возраст файла в часах
+ */
+function cleanupGeneratedFiles(directory, maxAgeHours = 24) {
+  try {
+    if (!fs.existsSync(directory)) return;
+
+    const files = fs.readdirSync(directory);
+    const now = Date.now();
+    const maxAgeMs = maxAgeHours * 60 * 60 * 1000;
+    let deletedCount = 0;
+
+    console.log(`🧹 Начало очистки папки ${directory} (удаление файлов старше ${maxAgeHours}ч)...`);
+
+    files.forEach((file) => {
+      // Пропускаем .gitkeep или другие важные файлы если они появятся
+      if (file === ".gitkeep" || file === ".DS_Store") return;
+
+      const filePath = path.join(directory, file);
+      const stats = fs.statSync(filePath);
+
+      if (stats.isFile() && now - stats.mtimeMs > maxAgeMs) {
+        fs.unlinkSync(filePath);
+        deletedCount++;
+      }
+    });
+
+    if (deletedCount > 0) {
+      console.log(`✅ Очистка завершена. Удалено файлов: ${deletedCount}`);
+    } else {
+      console.log("ℹ️ Старых файлов для удаления не найдено");
+    }
+  } catch (error) {
+    console.error("❌ Ошибка при очистке файлов:", error);
+  }
+}
+
 // Главная страница
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -632,6 +671,10 @@ app.use((req, res) => {
 // Запуск сервера
 async function startServer() {
   try {
+    // Очистка старых PDF перед запуском
+    const cleanupHours = parseInt(process.env.CLEANUP_HOURS || "24", 10);
+    cleanupGeneratedFiles(path.join(__dirname, "generated"), cleanupHours);
+
     // Сначала инициализируем браузер
     const browserStarted = await initializeBrowser();
     if (!browserStarted) {
