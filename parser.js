@@ -42,7 +42,10 @@ class GoszakupkiParser {
         rejectUnauthorized: false,
       });
       const maxAttempts = parseInt(process.env.API_UNP_MAX_ATTEMPTS || "5", 10);
-      const baseDelayMs = parseInt(process.env.API_UNP_BASE_DELAY_MS || "1000", 10);
+      const baseDelayMs = parseInt(
+        process.env.API_UNP_BASE_DELAY_MS || "1000",
+        10,
+      );
       const attemptDelay = (n) => {
         const jitter = Math.floor(Math.random() * baseDelayMs);
         const exp = baseDelayMs * Math.pow(2, n - 1);
@@ -72,7 +75,9 @@ class GoszakupkiParser {
           },
           (res) => {
             const statusCode = res.statusCode || 0;
-            const encoding = (res.headers["content-encoding"] || "").toLowerCase();
+            const encoding = (
+              res.headers["content-encoding"] || ""
+            ).toLowerCase();
             let stream = res;
             if (encoding === "gzip") {
               stream = res.pipe(zlib.createGunzip());
@@ -109,16 +114,11 @@ class GoszakupkiParser {
                     resolve(null);
                   }
                 } catch (e) {
-                  console.error(
-                    `Ошибка парсинга JSON для УНП ${cleanUnp}:`,
-                    e,
-                  );
+                  console.error(`Ошибка парсинга JSON для УНП ${cleanUnp}:`, e);
                   resolve(null);
                 }
               } else {
-                console.error(
-                  `HTTP ${statusCode} при запросе УНП ${cleanUnp}`,
-                );
+                console.error(`HTTP ${statusCode} при запросе УНП ${cleanUnp}`);
                 if (n < maxAttempts) {
                   const d = attemptDelay(n);
                   console.log(`Повтор через ${d / 1000}с`);
@@ -148,7 +148,10 @@ class GoszakupkiParser {
             resolve(null);
           }
         });
-        const timeoutMs = parseInt(process.env.API_UNP_TIMEOUT_MS || "20000", 10);
+        const timeoutMs = parseInt(
+          process.env.API_UNP_TIMEOUT_MS || "20000",
+          10,
+        );
         req.setTimeout(timeoutMs, () => {
           timedOut = true;
           console.error(`Таймаут запроса к API для УНП ${cleanUnp}`);
@@ -526,9 +529,7 @@ class GoszakupkiParser {
         const findUNP = () => {
           // Сначала ищем в правильной таблице
           const correctTableTds = Array.from(
-            document.querySelectorAll(
-              selectors.common.companyTable,
-            ),
+            document.querySelectorAll(selectors.common.companyTable),
           );
           for (const td of correctTableTds) {
             const text = td.textContent.trim();
@@ -643,9 +644,7 @@ class GoszakupkiParser {
         const findCompanyName = () => {
           // Сначала ищем в правильной таблице
           const correctTableTds = Array.from(
-            document.querySelectorAll(
-              selectors.common.companyTable,
-            ),
+            document.querySelectorAll(selectors.common.companyTable),
           );
           let longestText = "";
           for (const td of correctTableTds) {
@@ -770,9 +769,7 @@ class GoszakupkiParser {
         const findAddress = () => {
           // Сначала ищем в правильной таблице
           const correctTableTds = Array.from(
-            document.querySelectorAll(
-              selectors.common.companyTable,
-            ),
+            document.querySelectorAll(selectors.common.companyTable),
           );
           for (const td of correctTableTds) {
             const text = td.textContent.trim();
@@ -877,6 +874,14 @@ class GoszakupkiParser {
           address = safeExtract(selectors.marketingView.address);
         }
 
+        // Извлекаем дату подачи (срок подачи предложения) в зависимости от типа страницы
+        let submissionDate = "";
+        if (isRequestViewPage) {
+          submissionDate = safeExtract(selectors.requestView.submissionDate);
+        } else {
+          submissionDate = safeExtract(selectors.marketingView.submissionDate);
+        }
+
         // Ищем только УНП на странице, название компании и адрес получим из API
         if (!unp && !isRequestViewPage) {
           unp = findUNP();
@@ -901,7 +906,9 @@ class GoszakupkiParser {
         const lotDescription = safeExtract(selectors.common.lotDescription);
 
         let lotCount = "";
-        const lotCountElement = document.querySelector(selectors.common.lotCountPrice);
+        const lotCountElement = document.querySelector(
+          selectors.common.lotCountPrice,
+        );
         if (lotCountElement) {
           const countText = lotCountElement.textContent.trim();
 
@@ -912,11 +919,17 @@ class GoszakupkiParser {
             const detectUnit = (s) => {
               if (s.includes("м²")) return "м²";
               if (s.includes("м³")) return "м³";
-              if (s.includes("пог.м") || s.includes("п/м") || s.includes("пог. м")) return "пог.м";
+              if (
+                s.includes("пог.м") ||
+                s.includes("п/м") ||
+                s.includes("пог. м")
+              )
+                return "пог.м";
               if (s.includes("месяц") || s.includes("мес")) return "мес.";
               if (s.includes("шт")) return "шт.";
               if (s.includes("услуга")) return "услуга";
-              if (s.includes("комплект") || s.includes("ком.")) return "комплект";
+              if (s.includes("комплект") || s.includes("ком."))
+                return "комплект";
               if (/\bкг\b/.test(s)) return "кг";
               if (/\bл\b/.test(s)) return "л";
               if (/\bм\b/.test(s) && !s.includes("мес")) return "м";
@@ -938,7 +951,9 @@ class GoszakupkiParser {
 
         if (hasSecondLot) {
           lotDescription2 = safeExtract(selectors.common.secondLotDescription);
-          const lotCountElement2 = document.querySelector(selectors.common.secondLotCountPrice);
+          const lotCountElement2 = document.querySelector(
+            selectors.common.secondLotCountPrice,
+          );
           if (lotCountElement2) {
             const countText2 = lotCountElement2.textContent.trim();
 
@@ -949,11 +964,17 @@ class GoszakupkiParser {
               const detectUnit2 = (s) => {
                 if (s.includes("м²")) return "м²";
                 if (s.includes("м³")) return "м³";
-                if (s.includes("пог.м") || s.includes("п/м") || s.includes("пог. м")) return "пог.м";
+                if (
+                  s.includes("пог.м") ||
+                  s.includes("п/м") ||
+                  s.includes("пог. м")
+                )
+                  return "пог.м";
                 if (s.includes("месяц") || s.includes("мес")) return "мес.";
                 if (s.includes("шт")) return "шт.";
                 if (s.includes("услуга")) return "услуга";
-                if (s.includes("комплект") || s.includes("ком.")) return "комплект";
+                if (s.includes("комплект") || s.includes("ком."))
+                  return "комплект";
                 if (/\bкг\b/.test(s)) return "кг";
                 if (/\bл\b/.test(s)) return "л";
                 if (/\bм\b/.test(s) && !s.includes("мес")) return "м";
@@ -970,7 +991,9 @@ class GoszakupkiParser {
         }
 
         // Добавляем отладочную информацию
-        const allTds = Array.from(document.querySelectorAll(selectors.common.allTd));
+        const allTds = Array.from(
+          document.querySelectorAll(selectors.common.allTd),
+        );
         const relevantTds = allTds.filter((td) =>
           isRelevantContent(td.textContent.trim()),
         );
@@ -983,9 +1006,9 @@ class GoszakupkiParser {
           companyName: safeExtract(selectors.marketingView.companyName)
             ? "specific_table"
             : companyName &&
-              correctTableTds.some(
-                (td) => td.textContent.trim() === companyName,
-              )
+                correctTableTds.some(
+                  (td) => td.textContent.trim() === companyName,
+                )
               ? "correct_table"
               : "general_search",
           unp: safeExtract(selectors.marketingView.unp)
@@ -996,7 +1019,7 @@ class GoszakupkiParser {
           address: safeExtract(selectors.marketingView.address)
             ? "specific_table"
             : address &&
-              correctTableTds.some((td) => td.textContent.trim() === address)
+                correctTableTds.some((td) => td.textContent.trim() === address)
               ? "correct_table"
               : "general_search",
         };
@@ -1031,6 +1054,7 @@ class GoszakupkiParser {
           PLACE: place,
           PAYMENT: payment,
           END_DATE: endDate,
+          SUBMISSION_DATE: submissionDate,
           LOT_DESCRIPTION: lotDescription,
           LOT_COUNT: lotCount,
           LOT_DESCRIPTION_2: lotDescription2,

@@ -343,16 +343,16 @@ class PDFGenerator {
 
     let browserToUse = this.browser;
     let shouldCloseBrowser = false;
-    
+
     // Проверяем, существует ли браузер и подключен ли он
     if (!browserToUse || !browserToUse.isConnected()) {
       console.log(
         "Внимание: Глобальный браузер не найден или отключен. Создается временный экземпляр.",
       );
       const headlessConfig = process.env.HEADLESS === "false" ? false : "new";
-      browserToUse = await puppeteer.launch({ 
+      browserToUse = await puppeteer.launch({
         headless: headlessConfig,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"]
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
       shouldCloseBrowser = true;
     }
@@ -468,7 +468,7 @@ class PDFGenerator {
       // 6. Добавляем дополнительные данные для отправки в Telegram
       const extraData = {
         companyShortName: data.COMPANY_NAME || "",
-        proposalEndDate: data.END_DATE || "",
+        proposalEndDate: data.SUBMISSION_DATE || data.END_DATE || "",
       };
 
       return {
