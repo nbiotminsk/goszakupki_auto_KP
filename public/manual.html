@@ -939,7 +939,11 @@
                 <div class="modal-body">
                     <div class="catalog-toolbar">
                         <div class="catalog-filters">
-                            <input type="text" id="filterQuery" placeholder="Поиск по названию">
+                            <input
+                                type="text"
+                                id="filterQuery"
+                                placeholder="Поиск по названию"
+                            />
                             <select id="filterUnit">
                                 <option value="">Ед. изм.</option>
                                 <option value="шт.">шт.</option>
@@ -948,24 +952,67 @@
                                 <option value="мес.">мес.</option>
                                 <option value="кг">кг</option>
                             </select>
-                            <button type="button" onclick="clearCatalogFilters()">Сбросить</button>
+                            <button
+                                type="button"
+                                onclick="clearCatalogFilters()"
+                            >
+                                Сбросить
+                            </button>
                         </div>
                         <div class="catalog-actions-inline">
-                            <button type="button" class="primary" onclick="openItemModal()">+ Добавить товар</button>
-                            <button type="button" class="secondary" onclick="saveCatalogChanges()">Сохранить</button>
+                            <button
+                                type="button"
+                                class="primary"
+                                onclick="openItemModal()"
+                            >
+                                + Добавить товар
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary"
+                                onclick="saveCatalogChanges()"
+                            >
+                                Сохранить
+                            </button>
                         </div>
                     </div>
                     <div class="bulk-bar">
-                        <button type="button" onclick="bulkDeleteSelected()">Удалить выбранные</button>
+                        <button type="button" onclick="bulkDeleteSelected()">
+                            Удалить выбранные
+                        </button>
                     </div>
                     <div class="catalog-table-wrapper">
                         <table class="catalog-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 5%"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
-                                    <th class="sortable" data-sort="name" onclick="setCatalogSort('name')">Наименование</th>
-                                    <th class="sortable" data-sort="unit" onclick="setCatalogSort('unit')">Ед. изм.</th>
-                                    <th class="sortable" data-sort="price" onclick="setCatalogSort('price')">Цена (BYN)</th>
+                                    <th style="width: 5%">
+                                        <input
+                                            type="checkbox"
+                                            id="selectAll"
+                                            onclick="toggleSelectAll(this)"
+                                        />
+                                    </th>
+                                    <th
+                                        class="sortable"
+                                        data-sort="name"
+                                        onclick="setCatalogSort('name')"
+                                    >
+                                        Наименование
+                                    </th>
+                                    <th
+                                        class="sortable"
+                                        data-sort="unit"
+                                        onclick="setCatalogSort('unit')"
+                                    >
+                                        Ед. изм.
+                                    </th>
+                                    <th
+                                        class="sortable"
+                                        data-sort="price"
+                                        onclick="setCatalogSort('price')"
+                                    >
+                                        Цена (BYN)
+                                    </th>
                                     <th>Действия</th>
                                 </tr>
                             </thead>
@@ -997,34 +1044,56 @@
             <div class="item-modal-content">
                 <div class="item-modal-header">
                     <h3 id="itemModalTitle">Товар</h3>
-                    <button class="modal-close" onclick="closeItemModal()">×</button>
+                    <button class="modal-close" onclick="closeItemModal()">
+                        ×
+                    </button>
                 </div>
                 <div class="item-modal-body">
                     <div class="form-grid">
-                        <div class="field-group" style="grid-column: 1 / -1;">
+                        <div class="field-group" style="grid-column: 1 / -1">
                             <label for="formName">Наименование</label>
-                            <textarea id="formName" style="min-height: 120px; resize: vertical;"></textarea>
+                            <textarea
+                                id="formName"
+                                style="min-height: 120px; resize: vertical"
+                            ></textarea>
                             <div class="field-error" id="errName"></div>
                         </div>
                         <div class="field-group">
                             <label for="formPrice">Цена (BYN)</label>
-                            <input type="number" id="formPrice" step="0.01" min="0">
+                            <input
+                                type="number"
+                                id="formPrice"
+                                step="0.01"
+                                min="0"
+                            />
                             <div class="field-error" id="errPrice"></div>
                         </div>
                         <div class="field-group">
                             <label for="formUnit">Ед. изм.</label>
-                            <input type="text" id="formUnit" list="unitOptions">
+                            <input
+                                type="text"
+                                id="formUnit"
+                                list="unitOptions"
+                            />
                             <div class="field-error" id="errUnit"></div>
                         </div>
                     </div>
                     <div class="field-group image-preview">
-                        <input type="file" id="formImage" accept="image/*">
-                        <img id="formImagePreview" alt="Предпросмотр" style="display:none">
+                        <input type="file" id="formImage" accept="image/*" />
+                        <img
+                            id="formImagePreview"
+                            alt="Предпросмотр"
+                            style="display: none"
+                        />
                     </div>
                 </div>
                 <div class="item-modal-footer">
-                    <button class="ghost" onclick="closeItemModal()">Отмена</button>
-                    <button class="primary" onclick="saveItemFromModal()">Сохранить</button>
+                    <button class="ghost" onclick="closeItemModal()">
+                        Отмена
+                    </button>
+                    <button class="primary" onclick="saveItemFromModal()">
+                        Сохранить
+                    </button>
                 </div>
             </div>
         </div>
@@ -1065,8 +1134,14 @@
                             данных из реестра
                         </p>
                         <div class="checkbox-group">
-                            <input type="checkbox" id="skipUnpApi" name="skipUnpApi" />
-                            <label for="skipUnpApi">Не запрашивать данные по УНП (быстрее)</label>
+                            <input
+                                type="checkbox"
+                                id="skipUnpApi"
+                                name="skipUnpApi"
+                            />
+                            <label for="skipUnpApi"
+                                >Не запрашивать данные по УНП (быстрее)</label
+                            >
                         </div>
                     </div>
                     <div id="apiResult" class="api-result">
@@ -1649,8 +1724,8 @@
                 catalogData.forEach((item) => {
                     const option = document.createElement("option");
                     option.value = item.name || "";
-                    option.setAttribute("data-price", item.price || "");
-                    option.setAttribute("data-unit", item.unit || "");
+                    option.dataset.price = item.price || "";
+                    option.dataset.unit = item.unit || "";
                     datalist.appendChild(option);
                 });
             }
@@ -1864,24 +1939,21 @@
                 }
             }
 
-            function bulkApplyCategory() {
-            }
+            function bulkApplyCategory() {}
 
-            function bulkApplyBrand() {
-            }
+            function bulkApplyBrand() {}
 
             function openItemModal(index = null) {
                 editingIndex =
                     index !== null && index !== undefined ? index : null;
                 const item =
-                    editingIndex !== null
-                        ? catalogData[editingIndex]
-                        : {};
+                    editingIndex !== null ? catalogData[editingIndex] : {};
                 document.getElementById("itemModalTitle").textContent =
-                    editingIndex !== null ? "Редактирование товара" : "Новый товар";
+                    editingIndex !== null
+                        ? "Редактирование товара"
+                        : "Новый товар";
                 document.getElementById("formName").value = item.name || "";
-                document.getElementById("formPrice").value =
-                    item.price || "";
+                document.getElementById("formPrice").value = item.price || "";
                 document.getElementById("formUnit").value = item.unit || "";
                 const formImage = document.getElementById("formImage");
                 const imagePreview =
@@ -1962,7 +2034,8 @@
             function validateItemForm() {
                 validateItemField();
                 const errName = document.getElementById("errName").textContent;
-                const errPrice = document.getElementById("errPrice").textContent;
+                const errPrice =
+                    document.getElementById("errPrice").textContent;
                 const errUnit = document.getElementById("errUnit").textContent;
                 return !errName && !errPrice && !errUnit;
             }
@@ -2075,7 +2148,11 @@
             }
 
             function normalizeValue(value) {
-                return String(value || "").toLowerCase();
+                return String(value || "")
+                    .replace(/\s+/g, " ")
+                    .replace(/[\n\r]+/g, "")
+                    .trim()
+                    .toLowerCase();
             }
 
             function formatPrice(value) {
@@ -2096,9 +2173,10 @@
             }
 
             function onItemNameChange(inputElement) {
+                const inputValue = normalizeValue(inputElement.value);
                 const selectedOption = Array.from(
                     document.querySelectorAll("#itemCatalog option"),
-                ).find((option) => option.value === inputElement.value);
+                ).find((option) => normalizeValue(option.value) === inputValue);
 
                 if (
                     selectedOption &&
@@ -2131,7 +2209,9 @@
                 .addEventListener("input", function () {
                     const skip = document.getElementById("skipUnpApi")?.checked;
                     if (skip) {
-                        document.getElementById("apiResult").classList.remove("show");
+                        document
+                            .getElementById("apiResult")
+                            .classList.remove("show");
                         return;
                     }
                     clearTimeout(unpDebounceTimer);
@@ -2205,7 +2285,8 @@
                                 document.getElementById("customerAddress")
                                     .value,
                             skipUnpApi:
-                                document.getElementById("skipUnpApi")?.checked || false,
+                                document.getElementById("skipUnpApi")
+                                    ?.checked || false,
                             includeLot1:
                                 document.getElementById("includeLot1").checked,
                             includeLot2:
