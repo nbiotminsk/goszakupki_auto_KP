@@ -695,9 +695,11 @@ async function startServer() {
     const preferredPort = parseInt(PORT, 10);
     const maxAttempts = parseInt(process.env.PORT_FALLBACK_ATTEMPTS || "5", 10);
     let selectedPort = preferredPort;
+    let lastTriedPort = preferredPort;
 
-    for (let i = 0; i <= maxAttempts; i++) {
-      selectedPort = preferredPort + i;
+    for (let i = 0; i < maxAttempts; i++) {
+      lastTriedPort = preferredPort + i;
+      selectedPort = lastTriedPort;
       try {
         await new Promise((resolve, reject) => {
           const serverInstance = app.listen(selectedPort, () => resolve());
@@ -720,9 +722,9 @@ async function startServer() {
         );
         break;
       } catch (err) {
-        if (i === maxAttempts) {
+        if (i === maxAttempts - 1) {
           throw new Error(
-            `Не удалось запустить сервер: все порты в диапазоне ${preferredPort}-${preferredPort + maxAttempts} заняты`,
+            `Не удалось запустить сервер: все порты в диапазоне ${preferredPort}-${preferredPort + maxAttempts - 1} заняты`,
           );
         }
       }
