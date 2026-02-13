@@ -4,3 +4,5 @@ generated/
 nul
 .env
 .DS_Store
+
+.claude/
